@@ -36,7 +36,7 @@ jobs:
 
       - name: Package desktop app (Electron)
         run: |
-          npx electron-packager . "PDF-Direct-Editor" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" --ignore="^/node_modules" --ignore="^/.git"
+          npx electron-packager . "BOTIM-PDF-EDITOR" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" --ignore="^/node_modules" --ignore="^/.git"
         shell: pwsh
 
       - name: Build installer (NSIS)
@@ -50,7 +50,7 @@ jobs:
         shell: pwsh
         run: |
           $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          Compress-Archive -Path "release\PDF-Direct-Editor-win32-x64\*" -DestinationPath "release\PDF-Direct-Editor-Portable-$v.zip" -Force
+          Compress-Archive -Path "release\BOTIM-PDF-EDITOR-win32-x64\*" -DestinationPath "release\BOTIM-PDF-EDITOR-Portable-$v.zip" -Force
 
       - name: Write version.json
         shell: bash
@@ -61,9 +61,9 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "PDF Direct Editor ${{ github.ref_name }}"
+          name: "BOTIM PDF EDITOR ${{ github.ref_name }}"
           draft: false
           files: |
             release/*.exe
-            release/PDF-Direct-Editor-Portable-*.zip
+            release/BOTIM-PDF-EDITOR-Portable-*.zip
             deploy/version.json

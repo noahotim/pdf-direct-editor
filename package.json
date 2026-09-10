@@ -1,7 +1,7 @@
 {
-    "name":  "pdf-direct-editor",
-    "version":  "1.1.0",
-    "description":  "Direct PDF editor by Otim Noah - text, images, annotations, signatures, form fields, cover merge. Save as PDF without Word conversion.",
+    "name":  "botim-pdf-editor",
+    "version":  "1.2.0",
+    "description":  "BOTIM PDF EDITOR by Otim Noah - text, images, annotations, signatures, form fields, cover merge. Save as PDF without Word conversion.",
     "author":  "Otim Noah \u003cotim.noah@example.com\u003e",
     "main":  "electron/main.js",
     "type":  "module",
@@ -27,9 +27,9 @@
                             "wait-on":  "^7.2.0"
                         },
     "build":  {
-                  "appId":  "com.otimnoah.pdfdirecteditor",
-                  "productName":  "PDF Direct Editor by Otim Noah",
-                  "copyright":  "Copyright Â© 2026 Otim Noah",
+                  "appId":  "com.botim.pdfeditor",
+                  "productName":  "BOTIM PDF EDITOR",
+                  "copyright":  "Copyright Â© 2026 Otim Noah â€” BOTIM PDF EDITOR",
                   "directories":  {
                                       "output":  "release"
                                   },
@@ -54,15 +54,15 @@
                                "allowToChangeInstallationDirectory":  true,
                                "createDesktopShortcut":  true,
                                "createStartMenuShortcut":  true,
-                               "shortcutName":  "PDF Direct Editor",
+                               "shortcutName":  "BOTIM PDF EDITOR",
                                "displayLanguageSelector":  false,
                                "installerIcon":  "public/icon.png",
                                "uninstallerIcon":  "public/icon.png",
-                               "artifactName":  "PDF-Direct-Editor-Setup-by-Otim-Noah-${version}.exe",
+                               "artifactName":  "BOTIM-PDF-EDITOR-Setup-${version}.exe",
                                "include":  "installer.nsh"
                            },
                   "portable":  {
-                                   "artifactName":  "PDF-Direct-Editor-Portable-by-Otim-Noah.exe"
+                                   "artifactName":  "BOTIM-PDF-EDITOR-Portable-${version}.exe"
                                }
               }
 }

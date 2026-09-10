@@ -1,5 +1,5 @@
-﻿// pro-shell: menubar, sidebar tabs, statusbar, theme, shortcuts, properties, recent/IDB/recovery, file ops
-import { E, status, Actions, reg, openDialog, downloadBytes, pickFiles, idbPut, idbGet, idbDel, idbAll } from './pro-core.js'
+// pro-shell: menubar, sidebar tabs, statusbar, theme, shortcuts, properties, recent/IDB/recovery, file ops
+import { E, status, Actions, reg, openDialog, showInfo, downloadBytes, pickFiles, idbPut, idbGet, idbDel, idbAll } from './pro-core.js'
 
 const $ = (s) => document.querySelector(s)
 
@@ -50,10 +50,10 @@ setInterval(() => {
   try {
     const e = E()
     $('#sbFile').textContent = window.__docName || 'No document'
-    $('#sbPage').textContent = e.totalPages ? `Page ${e.visiblePageIndex() + 1} / ${e.totalPages}` : 'â€”'
+    $('#sbPage').textContent = e.totalPages ? `Page ${e.visiblePageIndex() + 1} / ${e.totalPages}` : '—'
     $('#sbZoom').textContent = Math.round(e.currentZoom * 100) + '%'
     const n = e.edits.length
-    $('#sbCount').textContent = `${e.totalPages} pg â€¢ ${n} edit${n === 1 ? '' : 's'}${e.pagesToDelete.size ? ` â€¢ ${e.pagesToDelete.size} del` : ''}`
+    $('#sbCount').textContent = `${e.totalPages} pg • ${n} edit${n === 1 ? '' : 's'}${e.pagesToDelete.size ? ` • ${e.pagesToDelete.size} del` : ''}`
   } catch { /* core not ready */ }
 }, 1200)
 
@@ -74,7 +74,7 @@ async function snapshotAutosave() {
     const e = E()
     if (!e.originalBytes || !window.__docName) return
     await idbPut({ id: 'autosave', name: window.__docName, mtime: Date.now(), bytes: e.originalBytes, edits: JSON.parse(JSON.stringify(e.edits)) })
-  } catch { /* quota or size â€” skip */ }
+  } catch { /* quota or size — skip */ }
 }
 setInterval(() => { const e = window.PDFE; if (e && e.edits.length) snapshotAutosave() }, 60000)
 window.addEventListener('load', async () => {
@@ -106,10 +106,10 @@ function refreshProps() {
   panel.classList.remove('hidden')
   if (!ed) {
     box.innerHTML = `<small style="color:#94a3b8">Click any object on the page to edit its properties here.</small>
-      <div class="props-row"><label>Document</label><span>${esc(window.__docName || 'â€”')}</span></div>
+      <div class="props-row"><label>Document</label><span>${esc(window.__docName || '—')}</span></div>
       <div class="props-row"><label>Pages</label><span>${e.totalPages}</span></div>
       <div class="props-row"><label>Edits</label><span>${e.edits.length}</span></div>
-      <button id="propsMeta" class="btn btn-small">ðŸ·ï¸ Document Metadataâ€¦</button>`
+      <button id="propsMeta" class="btn btn-small">ðŸ·ï¸ Document Metadata…</button>`
     document.getElementById('propsMeta').onclick = () => { const fn = Actions['metadata']; if (fn) fn() }
     return
   }
@@ -213,7 +213,7 @@ function copySel() {
 }
 function pasteClip() {
   const e = E()
-  if (!clipboard) return status('Clipboard empty â€” copy something first')
+  if (!clipboard) return status('Clipboard empty — copy something first')
   e.pushUndo()
   const c = JSON.parse(JSON.stringify(clipboard))
   c.id = Date.now() + Math.random()
@@ -236,7 +236,7 @@ async function newBlank() {
   const d = await PDFDocument.create()
   const [w, h] = sizes[r.size] || sizes.A4
   for (let i = 0; i < Math.min(200, Math.max(1, r.pages | 0)); i++) d.addPage([w, h])
-  d.setTitle('Untitled'); d.setAuthor('Otim Noah'); d.setProducer('PDF Direct Editor by Otim Noah')
+  d.setTitle('Untitled'); d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
   window.__docName = 'untitled.pdf'
   await e.reloadFromBytes(await d.save())
   recordRecent({ name: 'untitled.pdf', size: 0 }, e.originalBytes)
@@ -265,7 +265,7 @@ async function saveAs() {
 async function showRecent() {
   const all = (await idbAll()).filter((r) => r.id.startsWith('recent-')).sort((a, b) => b.mtime - a.mtime)
   if (!all.length) return status('No recent documents yet')
-  const r = await openDialog('Recent Documents', [{ key: 'pick', label: `Pick (${all.length})`, type: 'select', value: all[0].id, options: all.map((x) => ({ value: x.id, label: `${x.name} â€” ${(x.size / 1024).toFixed(0)} KB â€” ${new Date(x.mtime).toLocaleString()}` })) }], 'Open')
+  const r = await openDialog('Recent Documents', [{ key: 'pick', label: `Pick (${all.length})`, type: 'select', value: all[0].id, options: all.map((x) => ({ value: x.id, label: `${x.name} — ${(x.size / 1024).toFixed(0)} KB — ${new Date(x.mtime).toLocaleString()}` })) }], 'Open')
   if (!r) return
   const rec = await idbGet(r.pick)
   if (!rec || !rec.bytes) return status('Recent file data missing')
@@ -275,19 +275,17 @@ async function showRecent() {
 }
 
 // ---- help ----
-async function showShortcuts() {
-  await openDialog('Keyboard Shortcuts', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.9;">
-    <b>Ctrl+S</b> Save â€¢ <b>Ctrl+F</b> Find â€¢ <b>Ctrl+P</b> Print â€¢ <b>Ctrl+Z</b> Undo â€¢ <b>Ctrl+Y</b> Redo<br/>
-    <b>Ctrl+C / V / D</b> Copy / Paste / Duplicate â€¢ <b>Del</b> Delete selected â€¢ <b>Arrows</b> Nudge selected<br/>
-    Press <b>Esc</b> to close dialogs.</div>`
+function showShortcuts() {
+  showInfo('Keyboard Shortcuts', `<div style="font-size:12px;line-height:1.9;">
+    <b>Ctrl+S</b> Save &bull; <b>Ctrl+F</b> Find &bull; <b>Ctrl+P</b> Print &bull; <b>Ctrl+Z</b> Undo &bull; <b>Ctrl+Y</b> Redo<br/>
+    <b>Ctrl+C / V / D</b> Copy / Paste / Duplicate &bull; <b>Del</b> Delete selected &bull; <b>Arrows</b> Nudge selected<br/>
+    Press <b>Esc</b> to close dialogs.</div>`)
 }
-async function showAbout() {
-  await openDialog('About', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.8;">
-    <b>PDF Direct Editor v1.1.0</b><br/>Developed by <b>Otim Noah</b><br/>
-    Direct PDF editing â€” text, images, annotations, signatures, forms, pages, cover merge â€” saved as PDF without Word conversion.<br/>
-    Rendering: pdf.js â€¢ Writing: pdf-lib â€¢ OCR: Tesseract.js (online) â€¢ Runs 100% locally otherwise.</div>`
+function showAbout() {
+  showInfo('About', `<div style="font-size:12px;line-height:1.8;">
+    <b>BOTIM PDF EDITOR v1.2.0</b><br/>Developed by <b>Otim Noah</b><br/>
+    Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
+    Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }
 
 // ---- register file/edit/view actions (pages/tools/document actions live in their modules) ----
@@ -311,7 +309,7 @@ reg('about', showAbout)
 reg('pages-tab', () => showTab('pages'))
 reg('gotopage', () => { const fn = Actions['goto-page']; if (fn) fn() })
 
-// ---- global shortcuts (Ctrl+Z/Y/F already handled in main.js â€” do NOT duplicate) ----
+// ---- global shortcuts (Ctrl+Z/Y/F already handled in main.js — do NOT duplicate) ----
 document.addEventListener('keydown', (e) => {
   const tag = (e.target.tagName || '').toLowerCase()
   const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable

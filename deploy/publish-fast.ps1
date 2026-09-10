@@ -1,4 +1,4 @@
-# PDF Direct Editor — FAST publish via GitHub Actions.
+# BOTIM PDF EDITOR — FAST publish via GitHub Actions.
 #
 # You ONLY push small source code (few hundred KB). GitHub builds the 136 MB
 # installer + portable zip on ITS fast servers and publishes the release.
@@ -38,11 +38,12 @@ Write-Host "Version: $Version  (notes: $Notes)"
 $pkg.version = $Version
 Write-Utf8NoBom "package.json" ($pkg | ConvertTo-Json -Depth 10)
 Write-Utf8NoBom "src/pro-update.js" ((Get-Content "src/pro-update.js" -Raw) -replace "export const APP_VERSION = '[^']+'", "export const APP_VERSION = '$Version'")
-Write-Utf8NoBom "src/pro-shell.js" ((Get-Content "src/pro-shell.js" -Raw) -replace "PDF Direct Editor v\d+\.\d+\.\d+", "PDF Direct Editor v$Version")
+Write-Utf8NoBom "src/pro-shell.js" ((Get-Content "src/pro-shell.js" -Raw) -replace "BOTIM PDF EDITOR v\d+\.\d+\.\d+", "BOTIM PDF EDITOR v$Version")
 
 $nsi = Get-Content "nsis-installer.nsi" -Raw
 $nsi = $nsi -replace '!define PRODUCT_VERSION "[^"]+"', "!define PRODUCT_VERSION `"$Version`""
-$nsi = $nsi -replace 'PDF-Direct-Editor-Setup-by-Otim-Noah-[\d\.]+exe', "PDF-Direct-Editor-Setup-by-Otim-Noah-$Version.exe"
+  $nsi = $nsi -replace 'BOTIM-PDF-EDITOR-Setup-[\d\.]+exe', "BOTIM-PDF-EDITOR-Setup-$Version.exe"
+  $nsi = $nsi -replace 'PDF-Direct-Editor-Setup-by-Otim-Noah-[\d\.]+exe', "BOTIM-PDF-EDITOR-Setup-$Version.exe"
 $vv = (($Version + ".0").Split('.')[0..3] -join '.')
 $nsi = $nsi -replace 'VIProductVersion "[^"]*"', "VIProductVersion `"$vv`""
 $nsi = $nsi -replace 'VIAddVersionKey "FileVersion" "[^"]+"', "VIAddVersionKey `"FileVersion`" `"$Version`""

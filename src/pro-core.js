@@ -80,6 +80,23 @@ export function openDialog(title, fields = [], okText = 'OK') {
     m.classList.remove('hidden')
   })
 }
+// Informational dialog: shows content immediately with a single Close button.
+// Returns the body element so callers can attach handlers to buttons inside.
+export function showInfo(title, html) {
+  const m = document.getElementById('actionModal')
+  document.getElementById('actionTitle').textContent = title
+  const body = document.getElementById('actionBody')
+  body.innerHTML = html
+  const ok = document.getElementById('actionOk'), cancel = document.getElementById('actionCancel')
+  ok.textContent = 'Close'
+  ok.style.display = ''
+  cancel.style.display = 'none'
+  const close = () => { m.classList.add('hidden'); ok.onclick = null; cancel.onclick = null; m.onclick = null; cancel.style.display = '' }
+  ok.onclick = close
+  m.onclick = (e) => { if (e.target === m) close() }
+  m.classList.remove('hidden')
+  return body
+}
 // Global action registry: menus/sidebar dispatch here; feature modules register handlers
 export const Actions = {}
 export function reg(name, fn) { Actions[name] = fn }

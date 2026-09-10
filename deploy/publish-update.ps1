@@ -1,4 +1,4 @@
-# PDF Direct Editor — publish an update to all installed PCs (via GitHub Releases).
+# BOTIM PDF EDITOR — publish an update to all installed PCs (via GitHub Releases).
 #
 # One-time setup (run once):
 #   winget install -e --id GitHub.cli
@@ -26,7 +26,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectDir = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectDir
-Write-Host "== PDF Direct Editor publisher (GitHub) ==" -ForegroundColor Cyan
+Write-Host "== BOTIM PDF EDITOR publisher (GitHub) ==" -ForegroundColor Cyan
 
 # Write UTF-8 WITHOUT BOM (BOM breaks package.json for vite, and strict JSON parsers)
 $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
@@ -44,7 +44,7 @@ if ($LASTEXITCODE -ne 0) { throw "Not logged in. Run 'gh auth login' once, then 
 try { gh repo view $Repo 2>&1 | Out-Null } catch { }
 if ($LASTEXITCODE -ne 0) {
   Write-Host "Creating repo $Repo..." -ForegroundColor Yellow
-  gh repo create $Repo --public --description "PDF Direct Editor by Otim Noah - direct PDF editing without Word conversion"
+  gh repo create $Repo --public --description "BOTIM PDF EDITOR by Otim Noah - direct PDF editing without Word conversion"
 }
 
 # --- 1. version ---
@@ -59,43 +59,45 @@ $pkg.version = $Version
 Write-Utf8NoBom "package.json" ($pkg | ConvertTo-Json -Depth 10)
 
 Write-Utf8NoBom "src/pro-update.js" ((Get-Content "src/pro-update.js" -Raw) -replace "export const APP_VERSION = '[^']+'", "export const APP_VERSION = '$Version'")
-Write-Utf8NoBom "src/pro-shell.js" ((Get-Content "src/pro-shell.js" -Raw) -replace "PDF Direct Editor v\d+\.\d+\.\d+", "PDF Direct Editor v$Version")
-$nsi = Get-Content "nsis-installer.nsi" -Raw
-$nsi = $nsi -replace '!define PRODUCT_VERSION "[^"]+"', "!define PRODUCT_VERSION `"$Version`""
-$nsi = $nsi -replace 'PDF-Direct-Editor-Setup-by-Otim-Noah-[\d\.]+exe', "PDF-Direct-Editor-Setup-by-Otim-Noah-$Version.exe"
+Write-Utf8NoBom "src/pro-shell.js" ((Get-Content "src/pro-shell.js" -Raw) -replace "BOTIM PDF EDITOR v\d+\.\d+\.\d+", "BOTIM PDF EDITOR v$Version")
+  $nsi = Get-Content "nsis-installer.nsi" -Raw
+  $nsi = $nsi -replace '!define PRODUCT_VERSION "[^"]+"', "!define PRODUCT_VERSION `"$Version`""
+  $nsi = $nsi -replace 'BOTIM-PDF-EDITOR-Setup-[\d\.]+exe', "BOTIM-PDF-EDITOR-Setup-$Version.exe"
+  $nsi = $nsi -replace 'PDF-Direct-Editor-Setup-by-Otim-Noah-[\d\.]+exe', "BOTIM-PDF-EDITOR-Setup-$Version.exe"
 $vv = (($Version + ".0").Split('.')[0..3] -join '.')
 $nsi = $nsi -replace 'VIProductVersion "[^"]*"', "VIProductVersion `"$vv`""
 $nsi = $nsi -replace 'VIAddVersionKey "FileVersion" "[^"]+"', "VIAddVersionKey `"FileVersion`" `"$Version`""
 $nsi = $nsi -replace 'VIAddVersionKey "ProductVersion" "[^"]+"', "VIAddVersionKey `"ProductVersion`" `"$Version`""
 Write-Utf8NoBom "nsis-installer.nsi" $nsi
 
-$SetupName = "PDF-Direct-Editor-Setup-by-Otim-Noah-$Version.exe"
-$Tag = "v$Version"
+  $SetupName = "BOTIM-PDF-EDITOR-Setup-$Version.exe"
+  $Tag = "v$Version"
 
-# --- 2. build ---
-if (-not $SkipBuild) {
-  Write-Host "-- vite build" -ForegroundColor Yellow
-  .\node_modules\.bin\vite build 2>&1 | Select-Object -Last 4
-  Write-Host "-- electron-packager" -ForegroundColor Yellow
-  Get-Process | Where-Object { $_.ProcessName -like "*PDF-Direct*" } | Stop-Process -Force -ErrorAction SilentlyContinue
-  Start-Sleep -Seconds 1
-  Remove-Item -Recurse -Force "release\PDF-Direct-Editor-win32-x64" -ErrorAction SilentlyContinue
-  .\node_modules\.bin\electron-packager . "PDF-Direct-Editor" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" 2>&1 | Select-Object -Last 3
-  Write-Host "-- NSIS installer" -ForegroundColor Yellow
-  & "C:\Program Files (x86)\NSIS\makensis.exe" "nsis-installer.nsi" 2>&1 | Select-Object -Last 4
-  Write-Host "-- portable zip" -ForegroundColor Yellow
-  $ZipName = "PDF-Direct-Editor-Portable-$Version.zip"
-  Remove-Item -Force "release\$ZipName" -ErrorAction SilentlyContinue
-  & "$ProjectDir\node_modules\7zip-bin\win\x64\7za.exe" a -tzip -mx=1 "$ProjectDir\release\$ZipName" "$ProjectDir\release\PDF-Direct-Editor-win32-x64\*" 2>&1 | Select-Object -Last 3
-  if (-not (Test-Path "release\$SetupName")) { throw "Build failed: release\$SetupName not found" }
-}
+  # --- 2. build ---
+  if (-not $SkipBuild) {
+    Write-Host "-- vite build" -ForegroundColor Yellow
+    .\node_modules\.bin\vite build 2>&1 | Select-Object -Last 4
+    Write-Host "-- electron-packager" -ForegroundColor Yellow
+    Get-Process | Where-Object { $_.ProcessName -like "*BOTIM*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-Process | Where-Object { $_.ProcessName -like "*PDF-Direct*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+    Remove-Item -Recurse -Force "release\BOTIM-PDF-EDITOR-win32-x64","release\PDF-Direct-Editor-win32-x64" -ErrorAction SilentlyContinue
+    .\node_modules\.bin\electron-packager . "BOTIM-PDF-EDITOR" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" --ignore="^/.git" 2>&1 | Select-Object -Last 3
+    Write-Host "-- NSIS installer" -ForegroundColor Yellow
+    & "C:\Program Files (x86)\NSIS\makensis.exe" "nsis-installer.nsi" 2>&1 | Select-Object -Last 4
+    Write-Host "-- portable zip" -ForegroundColor Yellow
+    $ZipName = "BOTIM-PDF-EDITOR-Portable-$Version.zip"
+    Remove-Item -Force "release\$ZipName","release\PDF-Direct-Editor-Portable-$Version.zip" -ErrorAction SilentlyContinue
+    & "$ProjectDir\node_modules\7zip-bin\win\x64\7za.exe" a -tzip -mx=1 "$ProjectDir\release\$ZipName" "$ProjectDir\release\BOTIM-PDF-EDITOR-win32-x64\*" 2>&1 | Select-Object -Last 3
+    if (-not (Test-Path "release\$SetupName")) { throw "Build failed: release\$SetupName not found" }
+  }
 
-# --- 3. version.json (points at THIS release's permanent asset URLs) ---
-$base = "https://github.com/$Repo/releases/download/$Tag"
-$ZipName = "PDF-Direct-Editor-Portable-$Version.zip"
+  # --- 3. version.json (points at THIS release's permanent asset URLs) ---
+  $base = "https://github.com/$Repo/releases/download/$Tag"
+  $ZipName = "BOTIM-PDF-EDITOR-Portable-$Version.zip"
 $ver = @{
   version    = $Version
-  name       = "PDF Direct Editor by Otim Noah"
+  name       = "BOTIM PDF EDITOR by Otim Noah"
   url        = "$base/$SetupName"
   zip        = "$base/$ZipName"
   released   = (Get-Date).ToString("yyyy-MM-dd")
@@ -107,7 +109,7 @@ Write-Host $ver
 
 # --- 4. GitHub release ---
 Write-Host "-- creating release $Tag" -ForegroundColor Yellow
-if ($Notes) { $ReleaseNotes = $Notes } else { $ReleaseNotes = "PDF Direct Editor v$Version" }
+if ($Notes) { $ReleaseNotes = $Notes } else { $ReleaseNotes = "BOTIM PDF EDITOR v$Version" }
 gh release create $Tag --repo $Repo --title "v$Version" --notes "$ReleaseNotes" "release\$SetupName" "release\$ZipName" "deploy\version.json"
 Write-Host "== Published v$Version ==" -ForegroundColor Green
 Write-Host "Check: https://github.com/$Repo/releases/tag/$Tag"

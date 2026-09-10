@@ -3,7 +3,7 @@
 // Modules: analyze engine, Intel panel, smart search, Quick Actions NL,
 // health, cleanup, privacy, metadata cleaner, tables, summary, academic,
 // templates, batch extras, accessibility, recipes, command palette, suggestions.
-import { E, status, reg, openDialog, downloadBlob, downloadBytes, pickFiles, taskBegin, setBar, parseRange } from './pro-core.js'
+import { E, status, reg, openDialog, showInfo, downloadBlob, downloadBytes, pickFiles, taskBegin, setBar, parseRange } from './pro-core.js'
 import { rebuild, renderThumbs } from './pro-pages.js'
 import {
   RX, uniq, extractContacts, extractPhones, detectSections, detectTitleAuthors,
@@ -445,13 +445,12 @@ async function runHealth() {
   }
   const { score, items } = healthScore({ blanks, rotated, sizes, missingMeta, brokenLinks: badLinks, bigImages: heavy, dups, noText, scanned })
   const emoji = { ok: '✓', warn: '⚠', bad: '✗' }
-  await openDialog('PDF Health (local analysis)', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `
+  const body = showInfo('PDF Health (local analysis)', `
     <div style="font-size:22px;text-align:center;">PDF HEALTH SCORE<br/><b>${score}/100</b></div>
     <div style="font-size:12px;line-height:2;">${items.map((i) => `${emoji[i.kind]} ${i.label}`).join('<br/>')}</div>
     <div style="display:flex;gap:6px;"><button id="hlFix" class="btn btn-small" style="flex:1;">Fix Safe Issues (blanks${dups ? ' + duplicates' : ''})</button></div>
-    <small style="color:#94a3b8;">Safe fixes remove blank${dups ? '/duplicate' : ''} pages only (undoable). Links/images/sizes are report-only.</small>`
-  document.getElementById('hlFix').onclick = async () => {
+    <small style="color:#94a3b8;">Safe fixes remove blank${dups ? '/duplicate' : ''} pages only (undoable). Links/images/sizes are report-only.</small>`)
+  body.querySelector('#hlFix').onclick = async () => {
     document.getElementById('actionModal').classList.add('hidden')
     lastSnap = snapDoc()
     const drop = new Set()
@@ -537,13 +536,11 @@ async function runPrivacy() {
   });
   const byKind = {}
   findings.forEach((f) => { byKind[f.kind] = (byKind[f.kind] || 0) + 1 })
-  await openDialog('Privacy Scanner (local pattern matching)', [], 'Close')
-  const body = document.getElementById('actionBody')
   const sum = Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(' • ') || 'nothing found'
-  body.innerHTML = `<div style="font-size:12px;"><b>Potentially sensitive:</b> ${sum}<br/>
+  const body = showInfo('Privacy Scanner (local pattern matching)', `<div style="font-size:12px;"><b>Potentially sensitive:</b> ${sum}<br/>
     <small style="color:#94a3b8;">Review each item. Nothing is redacted automatically.</small>
     <div id="pvList" style="max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:4px;margin:8px 0;"></div>
-    <div style="display:flex;gap:6px;"><button id="pvRedact" class="btn btn-small btn-danger" style="flex:1;">⬛ Redact Checked</button></div></div>`
+    <div style="display:flex;gap:6px;"><button id="pvRedact" class="btn btn-small btn-danger" style="flex:1;">⬛ Redact Checked</button></div></div>`)
   const list = body.querySelector('#pvList')
   const checks = []
   findings.slice(0, 300).forEach((f, i) => {
@@ -615,12 +612,11 @@ async function metadataCleaner() {
   ]
   const r = await openDialog('Remove Hidden Information', rows.map(([k, l, v]) => ({ key: k, label: `${l}: ${v || '(empty)'}`, type: 'check', value: !!v })), 'Remove Selected')
   if (!r) return
-  await openDialog('Hidden Information Report', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.9;">
+  showInfo('Hidden Information Report', `<div style="font-size:12px;line-height:1.9;">
     <b>Annotations/overlays in editor:</b> ${annCount} (delete via Edit → Delete Selected or Clear)<br/>
     <b>Embedded files:</b> ${attach.length ? attach.join(', ') : 'none detected'}<br/>
     <b>JavaScript actions:</b> ${hasJS ? 'DETECTED — cannot remove with this offline build (needs a server engine)' : 'none detected'}<br/>
-    <small style="color:#94a3b8;">Embedded files/JS removal is honestly out of scope for pdf-lib; only metadata + editor annotations are removed here.</small></div>`
+    <small style="color:#94a3b8;">Embedded files/JS removal is honestly out of scope for pdf-lib; only metadata + editor annotations are removed here.</small></div>`)
   const anyMeta = rows.some(([k]) => r[k])
   if (anyMeta) {
     lastSnap = snapDoc()
@@ -647,13 +643,10 @@ async function detectTablesUI() {
   const d = await analyzeDoc(false)
   if (!d) return
   if (!d.tables.length) {
-    await openDialog('Detect Tables (local structure analysis)', [], 'Close')
-    document.getElementById('actionBody').innerHTML = '<div style="font-size:12px;">No grid-like tables detected. Tables need aligned rows + columns of text.</div>'
+    showInfo('Detect Tables (local structure analysis)', '<div style="font-size:12px;">No grid-like tables detected. Tables need aligned rows + columns of text.</div>')
     return
   }
-  await openDialog(`Likely Tables (${d.tables.length})`, [], 'Close')
-  const body = document.getElementById('actionBody')
-  body.innerHTML = '<div id="tblList" style="display:flex;flex-direction:column;gap:6px;"></div>'
+  const body = showInfo(`Likely Tables (${d.tables.length})`, '<div id="tblList" style="display:flex;flex-direction:column;gap:6px;"></div>')
   const list = body.querySelector('#tblList')
   d.tables.forEach((t, i) => {
     const div = document.createElement('div')
@@ -686,13 +679,12 @@ async function showSummary() {
   if (!d) return
   const pages = d.pages.map((p) => ({ text: p.text }))
   const { top, terms, stats } = (await import('./brain-utils.js')).summarize(pages, 6, 10)
-  await openDialog('Quick Summary — LOCAL document summary (extractive, offline)', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.8;">
+  showInfo('Quick Summary — LOCAL document summary (extractive, offline)', `<div style="font-size:12px;line-height:1.8;">
     <b>Pages:</b> ${stats.pages} • <b>Words:</b> ${stats.words}<br/>
     <b>Main sections:</b><ol>${d.sections.slice(0, 8).map((s) => `<li>${s.title.slice(0, 70)} (p${s.page})</li>`).join('') || '<li><i>none detected</i></li>'}</ol>
     <b>Most relevant sentences (term-frequency ranked):</b><ul>${top.map((s) => `<li>${s.slice(0, 220)}</li>`).join('')}</ul>
     <b>Key topics:</b> ${terms.join(', ') || '<i>—</i>'}<br/>
-    <small style="color:#94a3b8;">Not an LLM summary — top sentences + key terms computed locally.</small></div>`
+    <small style="color:#94a3b8;">Not an LLM summary — top sentences + key terms computed locally.</small></div>`)
 }
 
 // ================= academic mode =================
@@ -711,9 +703,7 @@ async function academicMode() {
       if (/^table\s+\d+/i.test(t)) tbls.push({ t: t.slice(0, 70), page: p.n })
     })
   })
-  await openDialog('Academic Mode (local detection)', [], 'Close')
-  const body = document.getElementById('actionBody')
-  body.innerHTML = `<div style="font-size:12px;line-height:1.9;">
+  const body = showInfo('Academic Mode (local detection)', `<div style="font-size:12px;line-height:1.9;">
     <b>Title:</b> ${d.titleAuthors.title.slice(0, 120) || '<i>not detected</i>'}<br/>
     <b>Authors:</b> ${d.titleAuthors.authors.join('; ') || '<i>none</i>'}<br/>
     <b>Affiliations:</b> ${d.titleAuthors.affiliations.join(' | ').slice(0, 200) || '<i>none</i>'}<br/>
@@ -731,7 +721,7 @@ async function academicMode() {
     <div style="display:flex;gap:4px;flex-wrap:wrap;">
       <button id="acAuth" class="btn btn-small" style="flex:1;">Copy authors</button>
       <button id="acDoi" class="btn btn-small" style="flex:1;">Copy DOIs</button>
-    </div></div>`
+    </div></div>`)
   const tocText = () => 'TABLE OF CONTENTS\n\n' + d.sections.map((s, i) => `${i + 1}. ${s.title.slice(0, 80)} ..... ${s.page}`).join('\n')
   body.querySelector('#acTocDl').onclick = () => downloadBlob(new Blob([tocText()], { type: 'text/plain' }), 'toc.txt')
   body.querySelector('#acToc').onclick = () => { document.getElementById('actionModal').classList.add('hidden'); insertTocPage() }
@@ -858,7 +848,7 @@ async function useTemplate(t) {
     page.drawText(label + ':', { x, y: y + size + 4, size: 9, font, color: rgb(0.4, 0.4, 0.4) })
     page.drawText(String(v), { x, y, size: Math.min(size, 32), font: bold, color: rgb(0, 0, 0) })
   }
-  d.setTitle(t.name); d.setAuthor('Otim Noah'); d.setProducer('PDF Direct Editor by Otim Noah')
+  d.setTitle(t.name); d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
   window.__docName = t.name.replace(/[^\w\-]+/g, '-').toLowerCase() + '.pdf'
   await e.reloadFromBytes(await d.save())
   status(`Generated from template "${t.name}"`)
@@ -910,7 +900,7 @@ async function batchExtras() {
         ;(await nd.copyPages(d, idx)).forEach((p) => nd.addPage(p))
         downloadBytes(await nd.save(), 'extract-' + f.name)
       } else if (r.op === 'strip') {
-        try { d.setTitle(''); d.setAuthor(''); d.setSubject(''); d.setKeywords([]); d.setCreator(''); d.setProducer('PDF Direct Editor') } catch { /* ignore */ }
+        try { d.setTitle(''); d.setAuthor(''); d.setSubject(''); d.setKeywords([]); d.setCreator(''); d.setProducer('BOTIM PDF EDITOR') } catch { /* ignore */ }
         downloadBytes(await d.save(), 'clean-' + f.name)
       } else if (r.op === 'rename') {
         downloadBytes(new Uint8Array(await f.arrayBuffer()), (r.spec || 'doc') + '-' + f.name)
@@ -942,10 +932,8 @@ async function a11yCheck() {
   try { for (const f of d.getForm().getFields()) { try { if (!f.getName()) unlabeled++ } catch { /* ignore */ } } } catch { /* ignore */ }
   rows.push({ k: `Form field labels (${unlabeled} unlabeled)`, ok: unlabeled === 0, fix: null })
   rows.push({ k: 'Image descriptions', ok: null, fix: null, note: 'alt-text cannot be verified with a local engine — check manually' })
-  await openDialog('Accessibility Check (local)', [], 'Close')
-  const body = document.getElementById('actionBody')
-  body.innerHTML = `<div style="font-size:12px;line-height:2;">${rows.map((r) => `${r.ok === null ? '○' : r.ok ? '✓' : '✗'} ${r.k}${r.note ? ` — <small>${r.note}</small>` : ''}`).join('<br/>')}</div>
-    <div style="display:flex;gap:4px;"><button id="axTitle" class="btn btn-small" style="flex:1;">Set title…</button><button id="axLang" class="btn btn-small" style="flex:1;">Set language: en</button></div>`
+  const body = showInfo('Accessibility Check (local)', `<div style="font-size:12px;line-height:2;">${rows.map((r) => `${r.ok === null ? '○' : r.ok ? '✓' : '✗'} ${r.k}${r.note ? ` — <small>${r.note}</small>` : ''}`).join('<br/>')}</div>
+    <div style="display:flex;gap:4px;"><button id="axTitle" class="btn btn-small" style="flex:1;">Set title…</button><button id="axLang" class="btn btn-small" style="flex:1;">Set language: en</button></div>`)
   body.querySelector('#axTitle').onclick = async () => {
     const r = await openDialog('Set Title', [{ key: 't', label: 'Document title', value: d.getTitle() || window.__docName || '' }], 'Set')
     if (r && r.t) { try { d.setTitle(r.t); status('Title set — Save to keep') } catch (err) { status(err.message) } }
@@ -1085,9 +1073,8 @@ window.__bx = {
   'bx-a11y': a11yCheck,
   'bx-recipes': recipesUI,
   'bx-palette': () => togglePalette(true),
-  'bx-redact-info': async () => {
-    await openDialog('About True Redaction Here', [], 'Close')
-    document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.8;">Marked pages are <b>rasterized on Apply</b>: vector text is replaced by flat pixels, then the app verifies zero extractable text remains. Form fields/links on those pages are removed too. This is genuine local redaction without paid SDKs — with the honest trade-off that redacted pages become images (like a scan).</div>`
+  'bx-redact-info': () => {
+    showInfo('About True Redaction Here', `<div style="font-size:12px;line-height:1.8;">Marked pages are <b>rasterized on Apply</b>: vector text is replaced by flat pixels, then the app verifies zero extractable text remains. Form fields/links on those pages are removed too. This is genuine local redaction without paid SDKs — with the honest trade-off that redacted pages become images (like a scan).</div>`)
   },
   'bx-ocr-go': () => document.querySelector('#menubar [data-act="ocr"]')?.click(),
 }

@@ -38,7 +38,7 @@ async function createWindow(){
       allowRunningInsecureContent: true
     },
     icon: path.join(__dirname, '../public/icon.png'),
-    title: 'PDF Direct Editor'
+    title: 'BOTIM PDF EDITOR'
   })
   if(isDev){
     try { await win.loadURL('http://localhost:5173') }

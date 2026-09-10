@@ -1,5 +1,5 @@
 // pro-lab: metadata, export/print/converters, compress, compare, batch, OCR, redaction, security info
-import { E, status, reg, openDialog, downloadBlob, downloadBytes, pickFiles, taskBegin, setBar, parseRange } from './pro-core.js'
+import { E, status, reg, openDialog, showInfo, downloadBlob, downloadBytes, pickFiles, taskBegin, setBar, parseRange } from './pro-core.js'
 
 // ---------- file info + metadata ----------
 async function fileInfo() {
@@ -7,12 +7,11 @@ async function fileInfo() {
   if (!e.pdfLibDoc) return status('Open a PDF first')
   let perms = '—'
   try { const p = await e.pdfDocProxy.getPermissions(); perms = JSON.stringify(p) } catch { /* ignore */ }
-  await openDialog('File Information', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:2;">
+  showInfo('File Information', `<div style="font-size:12px;line-height:2;">
     <b>Name:</b> ${window.__docName || '—'}<br/><b>Pages:</b> ${e.totalPages}<br/>
     <b>Size:</b> ${((e.originalBytes?.length || 0) / 1024).toFixed(1)} KB<br/>
     <b>Title:</b> ${e.pdfLibDoc.getTitle() || '—'}<br/><b>Author:</b> ${e.pdfLibDoc.getAuthor() || '—'}<br/>
-    <b>Producer:</b> ${e.pdfLibDoc.getProducer() || '—'}<br/><b>Permissions:</b> <small>${perms}</small></div>`
+    <b>Producer:</b> ${e.pdfLibDoc.getProducer() || '—'}<br/><b>Permissions:</b> <small>${perms}</small></div>`)
 }
 async function metadataEditor() {
   const e = E()
@@ -121,7 +120,7 @@ async function imagesToPdf() {
     page.drawImage(img, { x: 0, y: 0, width: page.getWidth(), height: page.getHeight() })
     t.log(`added: ${f.name}`); setBar((++k / files.length) * 100)
   }
-  d.setAuthor('Otim Noah'); d.setProducer('PDF Direct Editor by Otim Noah')
+  d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
   window.__docName = 'images.pdf'
   await e.reloadFromBytes(await d.save())
   t.done(`Created PDF with ${e.totalPages} page${e.totalPages > 1 ? 's' : ''}`)
@@ -164,7 +163,7 @@ async function textToPdf() {
       page.drawText(line, { x: M, y, size: 11, font, color: rgb(0, 0, 0) }); y -= LH
     }
   }
-  d.setTitle(r.title || 'Untitled'); d.setAuthor('Otim Noah'); d.setProducer('PDF Direct Editor by Otim Noah')
+  d.setTitle(r.title || 'Untitled'); d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
   window.__docName = (r.title || 'text').replace(/[^\w\-]+/g, '-').slice(0, 40) + '.pdf'
   await e.reloadFromBytes(await d.save())
   status(`Created ${window.__docName} (${e.totalPages} pages)`)
@@ -195,7 +194,7 @@ async function compressPdf() {
     pg.drawImage(img, { x: 0, y: 0, width: v0.width, height: v0.height })
     t.log(`page ${i}/${e.totalPages}`); setBar((i / e.totalPages) * 100)
   }
-  nd.setAuthor('Otim Noah'); nd.setProducer('PDF Direct Editor by Otim Noah (compressed)')
+  nd.setAuthor('Otim Noah'); nd.setProducer('BOTIM PDF EDITOR by Otim Noah (compressed)')
   const before = e.originalBytes.length
   await e.reloadFromBytes(await nd.save(), { keepEdits: true })
   const after = e.originalBytes.length
@@ -251,8 +250,7 @@ async function comparePdfs() {
     d.added.slice(0, 3).forEach((l) => { html += `<span style="color:#4ade80">+ ${l.slice(0, 120)}</span><br/>` })
   }
   html += `<br/><b>Total: +${totA} added, −${totR} removed segments.</b> (Line-based text comparison; layout/images not diffed.)</div>`
-  await openDialog('PDF Comparison Result', [], 'Close')
-  document.getElementById('actionBody').innerHTML = html
+  showInfo('PDF Comparison Result', html)
 }
 
 // ---------- batch: watermark + export images ----------
@@ -437,8 +435,8 @@ async function redactApply() {
     { key: 'ok', label: `Burn ${marks.length} black redaction${marks.length > 1 ? 's' : ''} into the PDF on Save?`, type: 'check', value: true }
   ], 'Apply + Save')
   if (!r || !r.ok) return
-  await openDialog('Redaction Notice', [], 'Understood')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.8;">Burn-in covers the area opaquely in the saved file. <b>Limitation:</b> underlying text glyphs in the original content stream may technically remain extractable — for court-grade redaction use a server engine (e.g. qpdf/OCRmyPDF). See final audit report §12.</div>`
+  const { showInfo } = await import('./pro-core.js')
+  showInfo('Redaction Notice', `<div style="font-size:12px;line-height:1.8;">Burn-in covers the area opaquely in the saved file. <b>Limitation:</b> underlying text glyphs in the original content stream may technically remain extractable — for court-grade redaction use a server engine (e.g. qpdf/OCRmyPDF). See final audit report §12.</div>`)
   e.saveBtn.click()
 }
 
@@ -463,10 +461,9 @@ async function secInfo() {
   if (!e.pdfDocProxy) return status('Open a PDF first')
   let p = {}
   try { p = await e.pdfDocProxy.getPermissions() } catch { p = {} }
-  await openDialog('Permissions / Security', [], 'Close')
-  document.getElementById('actionBody').innerHTML = `<div style="font-size:12px;line-height:1.9;">
+  showInfo('Permissions / Security', `<div style="font-size:12px;line-height:1.9;">
     <b>Raw permissions:</b> <small>${JSON.stringify(p)}</small><br/>
-    Password-protected PDFs can be <b>viewed</b> with their password only through a server workflow — this offline build cannot decrypt or encrypt (pdf-lib has no crypto engine). Saving a password on export requires an external service (see report §11).</div>`
+    Password-protected PDFs can be <b>viewed</b> with their password only through a server workflow — this offline build cannot decrypt or encrypt (pdf-lib has no crypto engine). Saving a password on export requires an external service (see report §11).</div>`)
 }
 
 // ---- registrations ----

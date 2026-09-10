@@ -1,4 +1,4 @@
-# Update Channel — PDF Direct Editor by Otim Noah (GitHub Releases)
+# Update Channel — BOTIM PDF EDITOR by Otim Noah (GitHub Releases)
 
 Installed PCs prompt the user to update whenever you publish. No server to maintain.
 
