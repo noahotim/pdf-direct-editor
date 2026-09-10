@@ -51,8 +51,9 @@ Write-Utf8NoBom "nsis-installer.nsi" $nsi
 
 # --- commit + tag + push (small source only) ---
 $Tag = "v$Version"
+$CommitMsg = if ($Notes) { $Notes } else { "release v$Version" }
 git add -A
-git commit -m "release v$Version" --allow-empty 2>&1 | Select-Object -Last 2
+git commit -m $CommitMsg --allow-empty 2>&1 | Select-Object -Last 2
 git tag -f $Tag
 git push -u origin $Branch 2>&1 | Select-Object -Last 3
 git push origin $Tag -f 2>&1 | Select-Object -Last 3
