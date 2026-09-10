@@ -1,0 +1,13 @@
+{
+  "name": "PDF Direct Editor by Otim Noah",
+  "short_name": "PDF Editor",
+  "description": "Edit PDFs directly - text, images, annotations, signatures, forms, cover merge. By Otim Noah. Save as PDF without Word.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "author": "Otim Noah",
+  "icons": [
+    { "src": "./icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

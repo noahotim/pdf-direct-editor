@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Direct Editor - Edit & Save as PDF</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <nav class="menubar" id="menubar">
+    <div class="menu" data-menu="file"><button class="menu-btn">File</button><div class="menu-drop">
+      <button data-act="open">📂 Open PDF…</button>
+      <button data-act="new">📄 New Blank PDF</button>
+      <button data-act="img2pdf">🖼️ Images → PDF…</button>
+      <button data-act="txt2pdf">📝 Text → PDF…</button>
+      <hr/><button data-act="save">💾 Save <small>Ctrl+S</small></button>
+      <button data-act="saveas">💾 Save As…</button>
+      <button data-act="download">⬇️ Download a Copy</button>
+      <hr/><button data-act="expimg">🖼️ Export Pages as Images…</button>
+      <button data-act="exptext">📝 Export Text (.txt)</button>
+      <button data-act="print">🖨️ Print… <small>Ctrl+P</small></button>
+      <hr/><button data-act="recent">🕘 Recent Documents</button>
+      <button data-act="close">✖ Close Document</button>
+    </div></div>
+    <div class="menu" data-menu="edit"><button class="menu-btn">Edit</button><div class="menu-drop">
+      <button data-act="undo">↩ Undo <small>Ctrl+Z</small></button>
+      <button data-act="redo">↪ Redo <small>Ctrl+Y</small></button>
+      <hr/><button data-act="copy">⧉ Copy Selection <small>Ctrl+C</small></button>
+      <button data-act="paste">📋 Paste <small>Ctrl+V</small></button>
+      <button data-act="duplicate">⧉ Duplicate <small>Ctrl+D</small></button>
+      <button data-act="delsel">🗑 Delete Selected <small>Del</small></button>
+      <hr/><button data-act="find">🔍 Find / Replace… <small>Ctrl+F</small></button>
+    </div></div>
+    <div class="menu" data-menu="view"><button class="menu-btn">View</button><div class="menu-drop">
+      <button data-act="zin">🔍 Zoom In</button>
+      <button data-act="zout">🔍 Zoom Out</button>
+      <button data-act="fitpage">⛶ Fit Page</button>
+      <button data-act="fitwidth">↔ Fit Width</button>
+      <button data-act="actual">1:1 Actual Size</button>
+      <hr/><button data-act="single">📄 Single-Page Mode</button>
+      <button data-act="twopage">📄 Two-Page Mode</button>
+      <button data-act="full">⛶ Full Screen</button>
+      <button data-act="gotopage">🔢 Go to Page…</button>
+      <hr/><button data-act="theme">🌗 Toggle Light / Dark Theme</button>
+    </div></div>
+    <div class="menu" data-menu="insert"><button class="menu-btn">Insert</button><div class="menu-drop">
+      <button data-act="ins-text">✏️ Text Box</button>
+      <button data-act="ins-styled">📝 Styled Text</button>
+      <button data-act="ins-image">🖼️ Image…</button>
+      <button data-act="ins-table">▦ Table…</button>
+      <button data-act="ins-header">⬆ Header</button>
+      <button data-act="ins-footer">⬇ Footer</button>
+      <button data-act="ins-pagenum">🔢 Page Numbers</button>
+      <button data-act="ins-line">— Horizontal Line</button>
+      <hr/><button data-act="ins-sign-draw">✍️ Signature (draw pad)</button>
+      <button data-act="ins-sign-type">⌨ Signature (type)…</button>
+      <button data-act="ins-sign-upload">🖼️ Signature (upload)…</button>
+      <hr/><button data-act="ins-form-text">📋 Form: Text Field…</button>
+      <button data-act="ins-form-check">☑ Form: Checkbox…</button>
+      <button data-act="ins-form-drop">🔽 Form: Dropdown…</button>
+      <button data-act="ins-form-radio">🔘 Form: Radio Group…</button>
+    </div></div>
+    <div class="menu" data-menu="tools"><button class="menu-btn">Tools</button><div class="menu-drop">
+      <button data-act="ocr">🔎 OCR Current Page (English)…</button>
+      <button data-act="compare">⚖️ Compare Two PDFs…</button>
+      <button data-act="batchmark">© Batch Watermark…</button>
+      <button data-act="batchexp">🖼️ Batch Export Images…</button>
+      <button data-act="compress">🗜️ Compress PDF…</button>
+      <hr/><button data-act="red-mark">⬛ Mark Redaction Area</button>
+      <button data-act="red-search">🔍 Search &amp; Mark Redactions…</button>
+      <button data-act="red-apply">⬛ Apply Redactions…</button>
+      <hr/><button data-act="metadata">🏷️ Document Metadata…</button>
+      <button data-act="flatten">🧊 Flatten (burn fields)…</button>
+      <hr/><button data-act="erase">🧽 Erase Words</button>
+      <button data-act="replace">🔄 Replace (text/image)…</button>
+    </div></div>
+    <div class="menu" data-menu="document"><button class="menu-btn">Document</button><div class="menu-drop">
+      <button data-act="pages-tab">🖼️ Page Thumbnails Tab</button>
+      <button data-act="pg-add">➕ Add Blank Page</button>
+      <button data-act="pg-dup">⧉ Duplicate Page…</button>
+      <button data-act="pg-rotl">⟲ Rotate Page −90°…</button>
+      <button data-act="pg-rotr">⟳ Rotate Page +90°…</button>
+      <button data-act="pg-rev">🔃 Reverse Page Order</button>
+      <hr/><button data-act="pg-insert">📥 Insert Pages from PDF…</button>
+      <button data-act="pg-replace">🔄 Replace Page…</button>
+      <button data-act="pg-extract">📤 Extract Pages…</button>
+      <button data-act="pg-split">✂️ Split PDF…</button>
+      <button data-act="pg-merge">🔗 Merge PDFs…</button>
+      <hr/><button data-act="cover">📑 Import Cover Page…</button>
+      <button data-act="pg-del">🗑 Delete Pages…</button>
+    </div></div>
+    <div class="menu" data-menu="help"><button class="menu-btn">Help</button><div class="menu-drop">
+      <button data-act="shortcuts">⌨ Keyboard Shortcuts…</button>
+      <button data-act="about">ℹ️ About PDF Direct Editor</button>
+    </div></div>
+    <span class="menu-dev">by Otim Noah</span>
+  </nav>
+  <div id="recoverBar" class="hidden"><span>🛟 Unsaved work from a previous session was found.</span><button id="recoverYes" class="btn btn-small" style="width:auto;">Restore</button><button id="recoverNo" class="btn btn-small" style="width:auto;">Discard</button></div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📄</span>
+      <div>
+        <h1>PDF Direct Editor</h1>
+        <p>Text • Images • Annotations • Signatures • Form Fields — Save as PDF directly</p>
+        <small style="color:#38bdf8;font-size:10px;">by Otim Noah</small>
+      </div>
+    </div>
+    <div class="actions">
+      <label class="btn btn-secondary">
+        <input type="file" id="fileInput" accept=".pdf" hidden />
+        📂 Open PDF
+      </label>
+      <label class="btn btn-secondary" style="background:#1e3a5f;border-color:#38bdf8;">
+        <input type="file" id="coverInput" accept=".pdf" hidden />
+        📑 Import Cover
+      </label>
+      <button id="saveBtn" class="btn btn-primary" disabled>💾 Save as PDF</button>
+      <button id="installBtn" class="btn btn-ghost" hidden>⬇️ Install App</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="toolbar" id="sidebar">
+      <div class="side-tabs">
+        <button class="side-tab active" data-tab="tools">Tools</button>
+        <button class="side-tab" data-tab="pages">Pages</button>
+        <button class="side-tab" data-tab="marks">Bookmarks</button>
+        <button class="side-tab" data-tab="search">Search</button>
+      </div>
+      <div id="tab-tools">
+      <h3>Tools</h3>
+      <div class="tool-group">
+        <button class="tool active" data-tool="select" title="Select/Pan">🖱️ Select</button>
+        <button class="tool" data-tool="text" title="Add/Edit Text">✏️ Text</button>
+        <button class="tool" data-tool="image" title="Add Image">🖼️ Image</button>
+        <button class="tool" data-tool="highlight" title="Highlight">🖍️ Highlight</button>
+        <button class="tool" data-tool="draw" title="Free Draw">✒️ Draw</button>
+        <button class="tool" data-tool="stamp" title="Stamp/Annotation">📌 Note</button>
+        <button class="tool" data-tool="signature" title="Signature">✍️ Sign</button>
+        <button class="tool" data-tool="form" title="Form Fields">📋 Form</button>
+        <button class="tool" data-tool="deleteWord" title="Delete/White-out Words">🧽 Erase Words</button>
+        <button class="tool" data-tool="replace" title="Replace Words (Erase + Type)">🔄 Replace Word</button>
+      </div>
+
+      <!-- WORD-LIKE RIBBON -->
+      <div class="tool-group" style="border-color:#f59e0b;background:#1c1917;">
+        <h4>📝 Word Formatting</h4>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <select id="fontFamily" style="flex:1;min-width:90px;padding:4px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
+            <option value="Helvetica">Helvetica</option>
+            <option value="Times">Times</option>
+            <option value="Courier">Courier</option>
+            <option value="Helvetica-Bold">Helvetica Bold</option>
+          </select>
+          <select id="fontSizeWord" style="width:62px;padding:4px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
+            <option value="10">10</option><option value="12">12</option><option value="14" selected>14</option><option value="16">16</option><option value="18">18</option><option value="24">24</option><option value="28">28</option><option value="36">36</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button id="boldBtn" class="btn btn-small" style="flex:1;font-weight:bold;">B</button>
+          <button id="italicBtn" class="btn btn-small" style="flex:1;font-style:italic;">I</button>
+          <button id="underlineBtn" class="btn btn-small" style="flex:1;text-decoration:underline;">U</button>
+          <button id="strikeBtn" class="btn btn-small" style="flex:1;text-decoration:line-through;">S</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button data-align="left" class="alignBtn btn btn-small" style="flex:1;">⬅</button>
+          <button data-align="center" class="alignBtn btn btn-small" style="flex:1;">⬍</button>
+          <button data-align="right" class="alignBtn btn btn-small" style="flex:1;">➡</button>
+          <button data-align="justify" class="alignBtn btn btn-small" style="flex:1;">☰</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <label style="font-size:11px;flex:1;">Line <input type="range" id="lineSpacing" min="1" max="2.5" step="0.1" value="1.2" style="width:60px;" /></label>
+          <input type="color" id="wordColor" value="#000000" style="width:28px;height:28px;padding:0;border:none;border-radius:6px;" />
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button id="bulletBtn" class="btn btn-small" style="flex:1;">• Bullet</button>
+          <button id="numberBtn" class="btn btn-small" style="flex:1;">1. Number</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button id="wordHighBtn" class="btn btn-small" style="flex:1;background:#fef08a;color:#422006;">Highlight</button>
+          <button id="clearFormatBtn" class="btn btn-small" style="flex:1;">Clear</button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <label>Text Size <input type="range" id="fontSize" min="8" max="72" value="14" /></label>
+        <label>Color <input type="color" id="colorPicker" value="#000000" /></label>
+        <label>Opacity <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="1" /></label>
+      </div>
+
+      <div class="tool-group">
+        <button id="addTextBtn" class="btn btn-small">+ Add Text Box</button>
+        <button id="addStyledTextBtn" class="btn btn-small" style="background:#f59e0b;color:white;">+ Styled Text (Word)</button>
+        <label class="btn btn-small">
+          + Add Image <input type="file" id="imageInput" accept="image/*" hidden />
+        </label>
+        <button id="deleteWordBtn" class="btn btn-small" style="background:#fee2e2;color:#991b1b;border-color:#fecaca;">🧽 Erase (draw over words)</button>
+        <button id="replaceWordBtn" class="btn btn-small" style="background:#fef3c7;border-color:#fde68a;">🔄 Replace Mode</button>
+        <button id="clearDrawBtn" class="btn btn-small btn-danger">Clear Drawings</button>
+        <button id="deleteSelectedBtn" class="btn btn-small btn-danger">Delete Selected</button>
+        <div style="display:flex;gap:4px;">
+          <button id="undoBtn" class="btn btn-small" style="flex:1;">↩ Undo</button>
+          <button id="redoBtn" class="btn btn-small" style="flex:1;">↪ Redo</button>
+        </div>
+      </div>
+
+      <div class="tool-group" style="border-color:#22c55e;">
+        <h4>Word Inserts</h4>
+        <button id="insertTableBtn" class="btn btn-small">▦ Insert Table</button>
+        <button id="insertHeaderBtn" class="btn btn-small">Header (Top)</button>
+        <button id="insertFooterBtn" class="btn btn-small">Footer (Bottom)</button>
+        <button id="pageNumberBtn" class="btn btn-small">🔢 Page Numbers</button>
+        <button id="insertLineBtn" class="btn btn-small">— Horizontal Line</button>
+        <div style="display:flex;gap:4px;">
+          <button id="findReplaceBtn" class="btn btn-small" style="flex:1;background:#38bdf8;color:white;">Find/Replace</button>
+          <button id="spellCheckBtn" class="btn btn-small" style="flex:1;">Spell</button>
+        </div>
+      </div>
+
+      <div id="pageDeletePanel" class="tool-group" style="border-color:#ef4444;">
+        <h4>📄 Pages - Delete</h4>
+        <div id="pageList" class="form-list">No PDF loaded</div>
+        <button id="deletePagesBtn" class="btn btn-small btn-danger">Delete Selected Pages</button>
+        <button id="restorePagesBtn" class="btn btn-small">Restore All Pages</button>
+        <small style="font-size:10px;color:#94a3b8;">Check pages to delete on Save. Deleted pages won't be in saved PDF.</small>
+      </div>
+
+      <div class="tool-group">
+        <h4>Signature Pad</h4>
+        <canvas id="sigPad" width="220" height="120"></canvas>
+        <div style="display:flex; gap:6px; margin-top:6px;">
+          <button id="clearSigBtn" class="btn btn-small">Clear</button>
+          <button id="addSigBtn" class="btn btn-small btn-primary">Add to PDF</button>
+        </div>
+      </div>
+
+      <div id="coverPanel" class="tool-group" style="border-color:#38bdf8;">
+        <h4>📑 Cover Page</h4>
+        <div id="coverStatus" class="form-list" style="font-size:11px;">No cover imported</div>
+        <label class="btn btn-small" style="background:#0ea5e9;color:white;">
+          Import Cover PDF <input type="file" id="coverInput2" accept=".pdf" hidden />
+        </label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:6px;margin-top:6px;"><input type="checkbox" id="mergeCoverCheck" checked /> Merge as first page on Save</label>
+        <label style="font-size:11px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="coverAllPagesCheck" /> Merge all cover pages (else first only)</label>
+        <button id="clearCoverBtn" class="btn btn-small btn-danger">Remove Cover</button>
+        <button id="previewCoverBtn" class="btn btn-small">Preview Cover</button>
+      </div>
+
+      <div id="formPanel" class="tool-group">
+        <h4>Form Fields (auto-detected)</h4>
+        <div id="formFieldsList" class="form-list">No PDF loaded</div>
+      </div>
+
+      <div class="info">
+        <small>💡 All edits save <b>directly to PDF</b> — no Word conversion. Works offline. Installable on any PC.</small>
+        <small style="display:block;margin-top:6px;color:#38bdf8;">Developed by <b>Otim Noah</b> • PDF Direct Editor v1.0</small>
+      </div>
+      </div><!-- /tab-tools -->
+      <div id="tab-pages" class="hidden">
+        <h3>Pages <span id="thumbCount" style="color:#38bdf8;"></span></h3>
+        <div class="tool-group">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button id="pgAddBtn" class="btn btn-small" style="flex:1;">➕ Blank</button>
+            <button id="pgDupBtn" class="btn btn-small" style="flex:1;">⧉ Duplicate</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button id="pgRotLBtn" class="btn btn-small" style="flex:1;">⟲ −90°</button>
+            <button id="pgRotRBtn" class="btn btn-small" style="flex:1;">⟳ +90°</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button id="pgUpBtn" class="btn btn-small" style="flex:1;">⬆ Move</button>
+            <button id="pgDownBtn" class="btn btn-small" style="flex:1;">⬇ Move</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button id="pgInsertBtn" class="btn btn-small" style="flex:1;">📥 Insert…</button>
+            <button id="pgReplaceBtn" class="btn btn-small" style="flex:1;">🔄 Replace…</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button id="pgExtractBtn" class="btn btn-small" style="flex:1;">📤 Extract…</button>
+            <button id="pgSplitBtn" class="btn btn-small" style="flex:1;">✂️ Split…</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button id="pgMergeBtn" class="btn btn-small" style="flex:1;">🔗 Merge…</button>
+            <button id="pgRevBtn" class="btn btn-small" style="flex:1;">🔃 Reverse</button>
+          </div>
+          <button id="pgDelSelBtn" class="btn btn-small btn-danger">🗑 Delete Checked Pages</button>
+          <small style="font-size:10px;color:#94a3b8;">✓ check = select • drag thumbs to reorder • click to jump</small>
+        </div>
+        <div id="thumbs" class="thumbs">No PDF loaded</div>
+      </div>
+      <div id="tab-marks" class="hidden">
+        <h3>Bookmarks</h3>
+        <div class="tool-group">
+          <button id="bmReloadBtn" class="btn btn-small">↻ Load Bookmarks</button>
+          <div id="bmList" class="form-list">No PDF loaded</div>
+          <small style="font-size:10px;color:#94a3b8;">Existing PDF outlines are listed for navigation. Creating new outlines needs a server engine (pdf-lib limitation).</small>
+        </div>
+        <h3>Links on Page</h3>
+        <div class="tool-group">
+          <button id="linkScanBtn" class="btn btn-small">🔗 Scan Links (visible page)</button>
+          <div id="linkList" class="form-list">Not scanned</div>
+        </div>
+      </div>
+      <div id="tab-search" class="hidden">
+        <h3>Search <small style="color:#94a3b8;">Ctrl+F</small></h3>
+        <div class="tool-group">
+          <input id="sideSearchInput" placeholder="Search PDF text…" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" />
+          <div style="display:flex;gap:4px;">
+            <button id="sideSearchBtn" class="btn btn-small" style="flex:1;">Search</button>
+            <button id="sideClearHlBtn" class="btn btn-small" style="flex:1;">Clear</button>
+          </div>
+          <label style="font-size:11px;"><input type="checkbox" id="sideHlCheck" checked /> Highlight matches on pages</label>
+          <div id="sideSearchResults" class="form-list">No search yet</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="viewer-area">
+      <div id="pageControls" class="page-controls">
+        <button id="prevPage">◀ Prev</button>
+        <span id="pageInfo">No PDF</span>
+        <button id="nextPage">Next ▶</button>
+        <span class="zoom">
+          <button id="zoomOut">−</button>
+          <span id="zoomLabel">100%</span>
+          <button id="zoomIn">+</button>
+        </span>
+        <span id="status" class="status"></span>
+      </div>
+      <div id="viewer" class="viewer">
+        <div id="dropZone" class="drop-zone">
+          <div class="drop-content">
+            <div class="drop-icon">📄</div>
+            <h2>Drop PDF here or click Open PDF</h2>
+            <p>Edits save directly as PDF — no Word needed</p>
+            <p class="hint">Supports: Text, Images, Highlights, Drawings, Notes, Signatures, Form Fields</p>
+          </div>
+        </div>
+        <div id="pdfContainer"></div>
+      </div>
+    </main>
+
+    <aside id="propsPanel" class="props hidden">
+      <h3>Selection</h3>
+      <div id="propsContent">Nothing selected</div>
+    </aside>
+  </div>
+
+  <div id="textModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Edit Text</h3>
+      <textarea id="textModalInput" rows="4" placeholder="Enter text..."></textarea>
+      <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap;">
+        <select id="modalFontFamily" style="flex:1;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
+          <option value="Helvetica">Helvetica</option><option value="Times">Times</option><option value="Courier">Courier</option><option value="Helvetica-Bold">Bold</option>
+        </select>
+        <label><input type="checkbox" id="modalBold" /> Bold</label>
+        <label><input type="checkbox" id="modalItalic" /> Italic</label>
+        <label><input type="checkbox" id="modalUnderline" /> Underline</label>
+      </div>
+      <div class="modal-actions">
+        <button id="textModalCancel" class="btn btn-ghost">Cancel</button>
+        <button id="textModalSave" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="findModal" class="modal hidden">
+    <div class="modal-box" style="width:420px;">
+      <h3>Find & Replace (Word)</h3>
+      <label style="font-size:12px;">Find <input id="findInput" style="width:100%;padding:6px;margin:4px 0;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" placeholder="word to find" /></label>
+      <label style="font-size:12px;">Replace <input id="replaceInput" style="width:100%;padding:6px;margin:4px 0;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" placeholder="replacement" /></label>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button id="findNextBtn" class="btn btn-small" style="flex:1;">Find Next</button>
+        <button id="replaceOneBtn" class="btn btn-small" style="flex:1;">Replace</button>
+        <button id="replaceAllBtn" class="btn btn-small" style="flex:1;background:#ef4444;color:white;">Replace All</button>
+      </div>
+      <div class="modal-actions" style="margin-top:10px;"><button id="findCloseBtn" class="btn btn-ghost">Close</button></div>
+      <small style="font-size:10px;color:#94a3b8;">Find covers page text + your added boxes. Replace creates delete-white + new text.</small>
+    </div>
+  </div>
+
+  <div id="tableModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Insert Table (Word)</h3>
+      <div style="display:flex;gap:8px;">
+        <label>Rows <input id="tableRows" type="number" min="1" max="12" value="3" style="width:70px;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" /></label>
+        <label>Cols <input id="tableCols" type="number" min="1" max="8" value="3" style="width:70px;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" /></label>
+      </div>
+      <div class="modal-actions">
+        <button id="tableCancel" class="btn btn-ghost">Cancel</button>
+        <button id="tableConfirm" class="btn btn-primary">Insert</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="promptModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="promptTitle">Input</h3>
+      <label style="font-size:12px;"><span id="promptLabel">Value</span> <input id="promptInput" style="width:100%;padding:8px;margin:8px 0;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" /></label>
+      <div class="modal-actions">
+        <button id="promptCancel" class="btn btn-ghost">Cancel</button>
+        <button id="promptOk" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="replaceModal" class="modal hidden">
+    <div class="modal-box" style="width:420px;">
+      <h3>🔄 Replace With…</h3>
+      <p id="replaceHint" style="font-size:11px;color:#94a3b8;margin:6px 0;">The old words are whited-out. Choose replacement text, an image, or both.</p>
+      <label style="font-size:12px;">Replacement text <input id="replaceTextInput" style="width:100%;padding:8px;margin:4px 0;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" placeholder="Type replacement text (optional if image chosen)" /></label>
+      <label class="btn btn-small" style="background:#0ea5e9;color:white;text-align:center;">
+        🖼️ Choose Replacement Image <input type="file" id="replaceImageInput" accept="image/*" hidden />
+      </label>
+      <div id="replaceImgPreview" style="font-size:11px;color:#94a3b8;margin-top:6px;">No image chosen</div>
+      <div class="modal-actions" style="margin-top:10px;">
+        <button id="replaceCancel" class="btn btn-ghost">Keep white-out only</button>
+        <button id="replaceConfirm" class="btn btn-primary">Apply Replacement</button>
+      </div>
+    </div>
+  </div>
+
+  <footer id="statusbar">
+    <span id="sbFile">No document</span>
+    <span id="sbPage">—</span>
+    <span id="sbZoom">—</span>
+    <span id="sbCount">—</span>
+    <span id="sbMsg"></span>
+    <span style="margin-left:auto;color:#38bdf8;">PDF Direct Editor • Otim Noah</span>
+  </footer>
+
+  <div id="actionModal" class="modal hidden">
+    <div class="modal-box" style="width:460px;max-height:86vh;overflow:auto;">
+      <h3 id="actionTitle">Action</h3>
+      <div id="actionBody" style="margin:10px 0;display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="modal-actions">
+        <button id="actionCancel" class="btn btn-ghost">Cancel</button>
+        <button id="actionOk" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="taskPanel" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;"><b id="taskTitle">Working…</b><button id="taskClose" class="btn btn-small" style="width:auto;">✖</button></div>
+    <div class="task-track"><div id="taskBar"></div></div>
+    <div id="taskLog">Starting…</div>
+  </div>
+
+  <div id="printArea" class="hidden"></div>
+
+  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/pro-core.js"></script>
+  <script type="module" src="./src/pro-shell.js"></script>
+  <script type="module" src="./src/pro-pages.js"></script>
+  <script type="module" src="./src/pro-view.js"></script>
+  <script type="module" src="./src/pro-annot.js"></script>
+  <script type="module" src="./src/pro-formsig.js"></script>
+  <script type="module" src="./src/pro-lab.js"></script>
+  <script type="module" src="./src/pro-update.js"></script>
+  <script type="module" src="./src/pro-brain.js"></script>
+</body>
+</html>

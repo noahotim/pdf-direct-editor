@@ -1,0 +1,67 @@
+name: Build & Release
+
+# Fires on every version tag (v1.1.0, v1.2.0 …) or manually.
+# You push a small source change; GitHub builds the 136 MB installer on ITS
+# fast servers and publishes the release. No more slow uploads from your PC.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install native build scripts (esbuild)
+        shell: bash
+        run: |
+          node node_modules/esbuild/install.js || true
+          node node_modules/electron/install.js || true
+
+      - name: Build web bundle (vite)
+        run: npm run build
+
+      - name: Package desktop app (Electron)
+        run: |
+          npx electron-packager . "PDF-Direct-Editor" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" --ignore="^/node_modules" --ignore="^/.git"
+        shell: pwsh
+
+      - name: Build installer (NSIS)
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          $env:PATH += ";C:\Program Files (x86)\NSIS"
+          makensis nsis-installer.nsi
+
+      - name: Build portable zip
+        shell: pwsh
+        run: |
+          $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          Compress-Archive -Path "release\PDF-Direct-Editor-win32-x64\*" -DestinationPath "release\PDF-Direct-Editor-Portable-$v.zip" -Force
+
+      - name: Write version.json
+        shell: bash
+        run: node deploy/write-version.mjs
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "PDF Direct Editor v${{ github.ref_name }}"
+          draft: false
+          files: |
+            release/*.exe
+            release/PDF-Direct-Editor-Portable-*.zip
+            deploy/version.json
