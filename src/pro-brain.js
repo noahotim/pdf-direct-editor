@@ -848,7 +848,7 @@ async function useTemplate(t) {
     page.drawText(label + ':', { x, y: y + size + 4, size: 9, font, color: rgb(0.4, 0.4, 0.4) })
     page.drawText(String(v), { x, y, size: Math.min(size, 32), font: bold, color: rgb(0, 0, 0) })
   }
-  d.setTitle(t.name); d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
+  d.setTitle(t.name); d.setAuthor('Otim Noah'); d.setProducer('BOTIM DOCSHUB by Otim Noah')
   window.__docName = t.name.replace(/[^\w\-]+/g, '-').toLowerCase() + '.pdf'
   await e.reloadFromBytes(await d.save())
   status(`Generated from template "${t.name}"`)
@@ -900,7 +900,7 @@ async function batchExtras() {
         ;(await nd.copyPages(d, idx)).forEach((p) => nd.addPage(p))
         downloadBytes(await nd.save(), 'extract-' + f.name)
       } else if (r.op === 'strip') {
-        try { d.setTitle(''); d.setAuthor(''); d.setSubject(''); d.setKeywords([]); d.setCreator(''); d.setProducer('BOTIM PDF EDITOR') } catch { /* ignore */ }
+        try { d.setTitle(''); d.setAuthor(''); d.setSubject(''); d.setKeywords([]); d.setCreator(''); d.setProducer('BOTIM DOCSHUB') } catch { /* ignore */ }
         downloadBytes(await d.save(), 'clean-' + f.name)
       } else if (r.op === 'rename') {
         downloadBytes(new Uint8Array(await f.arrayBuffer()), (r.spec || 'doc') + '-' + f.name)

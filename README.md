@@ -1,4 +1,4 @@
-# BOTIM PDF EDITOR — Web + Desktop (No Word Conversion)
+# BOTIM DOCSHUB — Web + Desktop (No Word Conversion)
 
 Edits **text, images, annotations, highlights, drawings, signatures, form fields** directly in PDF and saves as **PDF**.
 
@@ -24,13 +24,13 @@ npm run build
 ## Desktop .exe Installer (Electron) — for another PC
 ```powershell
 npm run dist
-# creates release/BOTIM PDF EDITOR Setup.exe  (installer)
+# creates release/BOTIM DOCSHUB Setup.exe  (installer)
 # and release/PDF-Direct-Editor-Portable.exe (no install, just double-click)
 ```
 Copy the `.exe` to any Windows PC and install/run. No Word needed.
 
 Files generated:
-- `release/BOTIM PDF EDITOR Setup 1.0.0.exe` — installer (creates Start Menu shortcut)
+- `release/BOTIM DOCSHUB Setup 1.0.0.exe` — installer (creates Start Menu shortcut)
 - `release/PDF-Direct-Editor-Portable.exe` — portable, run from USB
 
 ## Usage

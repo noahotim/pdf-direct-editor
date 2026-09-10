@@ -50,7 +50,7 @@ jobs:
         shell: pwsh
         run: |
           $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          Compress-Archive -Path "release\BOTIM-PDF-EDITOR-win32-x64\*" -DestinationPath "release\BOTIM-PDF-EDITOR-Portable-$v.zip" -Force
+          Compress-Archive -Path "release\BOTIM-DOCSHUB-win32-x64\*" -DestinationPath "release\BOTIM-DOCSHUB-Portable-$v.zip" -Force
 
       - name: Write version.json
         shell: bash
@@ -61,9 +61,9 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "BOTIM PDF EDITOR ${{ github.ref_name }}"
+          name: "BOTIM DOCSHUB ${{ github.ref_name }}"
           draft: false
           files: |
             release/*.exe
-            release/BOTIM-PDF-EDITOR-Portable-*.zip
+            release/BOTIM-DOCSHUB-Portable-*.zip
             deploy/version.json

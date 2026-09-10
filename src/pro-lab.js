@@ -120,7 +120,7 @@ async function imagesToPdf() {
     page.drawImage(img, { x: 0, y: 0, width: page.getWidth(), height: page.getHeight() })
     t.log(`added: ${f.name}`); setBar((++k / files.length) * 100)
   }
-  d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
+  d.setAuthor('Otim Noah'); d.setProducer('BOTIM DOCSHUB by Otim Noah')
   window.__docName = 'images.pdf'
   await e.reloadFromBytes(await d.save())
   t.done(`Created PDF with ${e.totalPages} page${e.totalPages > 1 ? 's' : ''}`)
@@ -163,7 +163,7 @@ async function textToPdf() {
       page.drawText(line, { x: M, y, size: 11, font, color: rgb(0, 0, 0) }); y -= LH
     }
   }
-  d.setTitle(r.title || 'Untitled'); d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
+  d.setTitle(r.title || 'Untitled'); d.setAuthor('Otim Noah'); d.setProducer('BOTIM DOCSHUB by Otim Noah')
   window.__docName = (r.title || 'text').replace(/[^\w\-]+/g, '-').slice(0, 40) + '.pdf'
   await e.reloadFromBytes(await d.save())
   status(`Created ${window.__docName} (${e.totalPages} pages)`)
@@ -194,7 +194,7 @@ async function compressPdf() {
     pg.drawImage(img, { x: 0, y: 0, width: v0.width, height: v0.height })
     t.log(`page ${i}/${e.totalPages}`); setBar((i / e.totalPages) * 100)
   }
-  nd.setAuthor('Otim Noah'); nd.setProducer('BOTIM PDF EDITOR by Otim Noah (compressed)')
+  nd.setAuthor('Otim Noah'); nd.setProducer('BOTIM DOCSHUB by Otim Noah (compressed)')
   const before = e.originalBytes.length
   await e.reloadFromBytes(await nd.save(), { keepEdits: true })
   const after = e.originalBytes.length

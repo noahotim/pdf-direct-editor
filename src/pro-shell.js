@@ -23,18 +23,34 @@ document.querySelectorAll('#menubar [data-act]').forEach((b) => {
   })
 })
 
-// ---- sidebar tabs ----
-document.querySelectorAll('.side-tab').forEach((t) => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.side-tab').forEach((x) => x.classList.remove('active'))
-    t.classList.add('active')
-    ;['tools', 'pages', 'marks', 'search'].forEach((k) => {
-      document.getElementById('tab-' + k)?.classList.toggle('hidden', k !== t.dataset.tab)
+// ---- sidebar tabs (generic â€” handles tools/pages/marks/search/intel/convert/feedback and any future tabs) ----
+function initTabs() {
+  const tabs = document.querySelectorAll('.side-tab')
+  tabs.forEach((t) => {
+    t.addEventListener('click', () => {
+      tabs.forEach((x) => x.classList.remove('active'))
+      t.classList.add('active')
+      document.querySelectorAll('[id^="tab-"]').forEach((p) => p.classList.toggle('hidden', p.id !== 'tab-' + t.dataset.tab))
+      if (t.dataset.tab === 'pages' && Actions['pages-refresh']) Actions['pages-refresh']()
+      if (t.dataset.tab === 'marks' && Actions['bm-load']) Actions['bm-load']()
     })
-    if (t.dataset.tab === 'pages' && Actions['pages-refresh']) Actions['pages-refresh']()
-    if (t.dataset.tab === 'marks' && Actions['bm-load']) Actions['bm-load']()
   })
-})
+}
+initTabs()
+// re-init when new tabs are injected (Convert, Feedback, Intel) â€” observe side-tabs
+new MutationObserver(() => {
+  document.querySelectorAll('.side-tab').forEach((t) => {
+    if (t._botimWired) return
+    t._botimWired = true
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.side-tab').forEach((x) => x.classList.remove('active'))
+      t.classList.add('active')
+      document.querySelectorAll('[id^="tab-"]').forEach((p) => p.classList.toggle('hidden', p.id !== 'tab-' + t.dataset.tab))
+      if (t.dataset.tab === 'pages' && Actions['pages-refresh']) Actions['pages-refresh']()
+      if (t.dataset.tab === 'marks' && Actions['bm-load']) Actions['bm-load']()
+    })
+  })
+}).observe(document.querySelector('.side-tabs'), { childList: true })
 export function showTab(name) { document.querySelector(`.side-tab[data-tab="${name}"]`)?.click() }
 
 // ---- theme ----
@@ -50,10 +66,10 @@ setInterval(() => {
   try {
     const e = E()
     $('#sbFile').textContent = window.__docName || 'No document'
-    $('#sbPage').textContent = e.totalPages ? `Page ${e.visiblePageIndex() + 1} / ${e.totalPages}` : '—'
+    $('#sbPage').textContent = e.totalPages ? `Page ${e.visiblePageIndex() + 1} / ${e.totalPages}` : 'â€”'
     $('#sbZoom').textContent = Math.round(e.currentZoom * 100) + '%'
     const n = e.edits.length
-    $('#sbCount').textContent = `${e.totalPages} pg • ${n} edit${n === 1 ? '' : 's'}${e.pagesToDelete.size ? ` • ${e.pagesToDelete.size} del` : ''}`
+    $('#sbCount').textContent = `${e.totalPages} pg â€¢ ${n} edit${n === 1 ? '' : 's'}${e.pagesToDelete.size ? ` â€¢ ${e.pagesToDelete.size} del` : ''}`
   } catch { /* core not ready */ }
 }, 1200)
 
@@ -74,7 +90,7 @@ async function snapshotAutosave() {
     const e = E()
     if (!e.originalBytes || !window.__docName) return
     await idbPut({ id: 'autosave', name: window.__docName, mtime: Date.now(), bytes: e.originalBytes, edits: JSON.parse(JSON.stringify(e.edits)) })
-  } catch { /* quota or size — skip */ }
+  } catch { /* quota or size â€” skip */ }
 }
 setInterval(() => { const e = window.PDFE; if (e && e.edits.length) snapshotAutosave() }, 60000)
 window.addEventListener('load', async () => {
@@ -106,10 +122,10 @@ function refreshProps() {
   panel.classList.remove('hidden')
   if (!ed) {
     box.innerHTML = `<small style="color:#94a3b8">Click any object on the page to edit its properties here.</small>
-      <div class="props-row"><label>Document</label><span>${esc(window.__docName || '—')}</span></div>
+      <div class="props-row"><label>Document</label><span>${esc(window.__docName || 'â€”')}</span></div>
       <div class="props-row"><label>Pages</label><span>${e.totalPages}</span></div>
       <div class="props-row"><label>Edits</label><span>${e.edits.length}</span></div>
-      <button id="propsMeta" class="btn btn-small">ðŸ·ï¸ Document Metadata…</button>`
+      <button id="propsMeta" class="btn btn-small">Ã°Å¸ÂÂ·Ã¯Â¸Â Document Metadataâ€¦</button>`
     document.getElementById('propsMeta').onclick = () => { const fn = Actions['metadata']; if (fn) fn() }
     return
   }
@@ -144,7 +160,7 @@ function refreshProps() {
   if (ed.type === 'image') {
     h += `<div class="props-row"><label>Locked</label><input data-k="locked" type="checkbox" ${ed.locked ? 'checked' : ''} /></div>`
   }
-  h += `<div style="display:flex;gap:4px;margin-top:6px;"><button id="propsApply" class="btn btn-small btn-primary" style="flex:1">Apply</button><button id="propsFwd" class="btn btn-small" style="flex:1" title="Bring forward">â–²</button><button id="propsBwd" class="btn btn-small" style="flex:1" title="Send backward">â–¼</button><button id="propsDel" class="btn btn-small btn-danger" style="flex:1">Del</button></div>`
+  h += `<div style="display:flex;gap:4px;margin-top:6px;"><button id="propsApply" class="btn btn-small btn-primary" style="flex:1">Apply</button><button id="propsFwd" class="btn btn-small" style="flex:1" title="Bring forward">Ã¢â€“Â²</button><button id="propsBwd" class="btn btn-small" style="flex:1" title="Send backward">Ã¢â€“Â¼</button><button id="propsDel" class="btn btn-small btn-danger" style="flex:1">Del</button></div>`
   box.innerHTML = h
   const get = (k) => box.querySelector(`[data-k="${k}"]`)
   document.getElementById('propsApply').onclick = () => {
@@ -213,7 +229,7 @@ function copySel() {
 }
 function pasteClip() {
   const e = E()
-  if (!clipboard) return status('Clipboard empty — copy something first')
+  if (!clipboard) return status('Clipboard empty â€” copy something first')
   e.pushUndo()
   const c = JSON.parse(JSON.stringify(clipboard))
   c.id = Date.now() + Math.random()
@@ -236,7 +252,7 @@ async function newBlank() {
   const d = await PDFDocument.create()
   const [w, h] = sizes[r.size] || sizes.A4
   for (let i = 0; i < Math.min(200, Math.max(1, r.pages | 0)); i++) d.addPage([w, h])
-  d.setTitle('Untitled'); d.setAuthor('Otim Noah'); d.setProducer('BOTIM PDF EDITOR by Otim Noah')
+  d.setTitle('Untitled'); d.setAuthor('Otim Noah'); d.setProducer('BOTIM DOCSHUB by Otim Noah')
   window.__docName = 'untitled.pdf'
   await e.reloadFromBytes(await d.save())
   recordRecent({ name: 'untitled.pdf', size: 0 }, e.originalBytes)
@@ -265,7 +281,7 @@ async function saveAs() {
 async function showRecent() {
   const all = (await idbAll()).filter((r) => r.id.startsWith('recent-')).sort((a, b) => b.mtime - a.mtime)
   if (!all.length) return status('No recent documents yet')
-  const r = await openDialog('Recent Documents', [{ key: 'pick', label: `Pick (${all.length})`, type: 'select', value: all[0].id, options: all.map((x) => ({ value: x.id, label: `${x.name} — ${(x.size / 1024).toFixed(0)} KB — ${new Date(x.mtime).toLocaleString()}` })) }], 'Open')
+  const r = await openDialog('Recent Documents', [{ key: 'pick', label: `Pick (${all.length})`, type: 'select', value: all[0].id, options: all.map((x) => ({ value: x.id, label: `${x.name} â€” ${(x.size / 1024).toFixed(0)} KB â€” ${new Date(x.mtime).toLocaleString()}` })) }], 'Open')
   if (!r) return
   const rec = await idbGet(r.pick)
   if (!rec || !rec.bytes) return status('Recent file data missing')
@@ -283,7 +299,7 @@ function showShortcuts() {
 }
 function showAbout() {
   showInfo('About', `<div style="font-size:12px;line-height:1.8;">
-    <b>BOTIM PDF EDITOR v1.2.0</b><br/>Developed by <b>Otim Noah</b><br/>
+    <b>BOTIM DOCSHUB v1.3.0</b><br/>Developed by <b>Otim Noah</b><br/>
     Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
     Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }
@@ -309,7 +325,7 @@ reg('about', showAbout)
 reg('pages-tab', () => showTab('pages'))
 reg('gotopage', () => { const fn = Actions['goto-page']; if (fn) fn() })
 
-// ---- global shortcuts (Ctrl+Z/Y/F already handled in main.js — do NOT duplicate) ----
+// ---- global shortcuts (Ctrl+Z/Y/F already handled in main.js â€” do NOT duplicate) ----
 document.addEventListener('keydown', (e) => {
   const tag = (e.target.tagName || '').toLowerCase()
   const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable

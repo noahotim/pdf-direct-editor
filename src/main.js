@@ -1098,12 +1098,12 @@ saveBtn.addEventListener('click', async ()=>{
       }
       // lines already handled per-page earlier, but if they were on deleted pages they are skipped; for remaining they are already drawn on pdfLibDoc pages, which got copied, so fine
 
-      if(window.__stripMeta){ try{ finalDoc.setTitle(''); finalDoc.setAuthor(''); finalDoc.setSubject(''); finalDoc.setKeywords([]); finalDoc.setCreator(''); finalDoc.setProducer('BOTIM PDF EDITOR') }catch{} window.__stripMeta=false }
-      else { try{ finalDoc.setAuthor('Otim Noah'); finalDoc.setProducer('BOTIM PDF EDITOR by Otim Noah'); finalDoc.setCreator('BOTIM PDF EDITOR v1.0 - Otim Noah') }catch{} }
+      if(window.__stripMeta){ try{ finalDoc.setTitle(''); finalDoc.setAuthor(''); finalDoc.setSubject(''); finalDoc.setKeywords([]); finalDoc.setCreator(''); finalDoc.setProducer('BOTIM DOCSHUB') }catch{} window.__stripMeta=false }
+      else { try{ finalDoc.setAuthor('Otim Noah'); finalDoc.setProducer('BOTIM DOCSHUB by Otim Noah'); finalDoc.setCreator('BOTIM DOCSHUB v1.0 - Otim Noah') }catch{} }
       finalBytes = await finalDoc.save()
     } else {
-      if(window.__stripMeta){ try{ pdfLibDoc.setTitle(''); pdfLibDoc.setAuthor(''); pdfLibDoc.setSubject(''); pdfLibDoc.setKeywords([]); pdfLibDoc.setCreator(''); pdfLibDoc.setProducer('BOTIM PDF EDITOR') }catch{} window.__stripMeta=false }
-      else { try{ pdfLibDoc.setAuthor('Otim Noah'); pdfLibDoc.setProducer('BOTIM PDF EDITOR by Otim Noah') }catch{} }
+      if(window.__stripMeta){ try{ pdfLibDoc.setTitle(''); pdfLibDoc.setAuthor(''); pdfLibDoc.setSubject(''); pdfLibDoc.setKeywords([]); pdfLibDoc.setCreator(''); pdfLibDoc.setProducer('BOTIM DOCSHUB') }catch{} window.__stripMeta=false }
+      else { try{ pdfLibDoc.setAuthor('Otim Noah'); pdfLibDoc.setProducer('BOTIM DOCSHUB by Otim Noah') }catch{} }
       finalBytes = await pdfLibDoc.save()
     }
     // TRUE redaction: pages carrying redact marks are rasterized so underlying

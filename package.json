@@ -1,8 +1,12 @@
 {
     "name":  "botim-pdf-editor",
-    "version":  "1.2.0",
-    "description":  "BOTIM PDF EDITOR by Otim Noah - text, images, annotations, signatures, form fields, cover merge. Save as PDF without Word conversion.",
+    "version":  "1.3.0",
+    "description":  "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint editor \u0026 converter - edit, convert, merge without disorganising layout.",
     "author":  "Otim Noah \u003cotim.noah@example.com\u003e",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/noahotim/pdf-direct-editor.git"
+                   },
     "main":  "electron/main.js",
     "type":  "module",
     "scripts":  {
@@ -15,8 +19,13 @@
                     "pack":  "electron-builder --dir"
                 },
     "dependencies":  {
+                         "docx":  "^9.7.1",
+                         "electron-updater":  "^6.8.9",
+                         "jszip":  "^3.10.2",
+                         "mammoth":  "^1.12.2",
                          "pdf-lib":  "^1.17.1",
-                         "pdfjs-dist":  "^4.4.168"
+                         "pdfjs-dist":  "^4.4.168",
+                         "pptxgenjs":  "^4.0.1"
                      },
     "devDependencies":  {
                             "concurrently":  "^8.2.2",
@@ -27,9 +36,16 @@
                             "wait-on":  "^7.2.0"
                         },
     "build":  {
-                  "appId":  "com.botim.pdfeditor",
-                  "productName":  "BOTIM PDF EDITOR",
-                  "copyright":  "Copyright Â© 2026 Otim Noah â€” BOTIM PDF EDITOR",
+                  "appId":  "com.botim.docshub",
+                  "productName":  "BOTIM DOCSHUB",
+                  "copyright":  "Copyright Â© 2026 Otim Noah â€” BOTIM DOCSHUB",
+                  "publish":  [
+                                  {
+                                      "provider":  "github",
+                                      "owner":  "noahotim",
+                                      "repo":  "pdf-direct-editor"
+                                  }
+                              ],
                   "directories":  {
                                       "output":  "release"
                                   },
@@ -54,15 +70,15 @@
                                "allowToChangeInstallationDirectory":  true,
                                "createDesktopShortcut":  true,
                                "createStartMenuShortcut":  true,
-                               "shortcutName":  "BOTIM PDF EDITOR",
+                               "shortcutName":  "BOTIM DOCSHUB",
                                "displayLanguageSelector":  false,
                                "installerIcon":  "public/icon.png",
                                "uninstallerIcon":  "public/icon.png",
-                               "artifactName":  "BOTIM-PDF-EDITOR-Setup-${version}.exe",
+                               "artifactName":  "BOTIM-DOCSHUB-Setup-${version}.exe",
                                "include":  "installer.nsh"
                            },
                   "portable":  {
-                                   "artifactName":  "BOTIM-PDF-EDITOR-Portable-${version}.exe"
+                                   "artifactName":  "BOTIM-DOCSHUB-Portable-${version}.exe"
                                }
               }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "BOTIM PDF EDITOR by Otim Noah",
+  "name": "BOTIM DOCSHUB by Otim Noah",
   "short_name": "BOTIM",
-  "description": "BOTIM PDF EDITOR — Edit PDFs directly - text, images, annotations, signatures, forms, cover merge. By Otim Noah. Save as PDF without Word.",
+  "description": "BOTIM DOCSHUB — PDF, Word, PowerPoint Editor & Converter by Otim Noah. Edit, convert, merge without disorganising layout. Save as PDF/Word/PPT directly.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
