@@ -54,12 +54,14 @@ jobs:
 
       - name: Write version.json
         shell: bash
-        run: node deploy/write-version.mjs
+        run: |
+          export NOTES="$(git log -1 --pretty=%B | head -1)"
+          node deploy/write-version.mjs
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "PDF Direct Editor v${{ github.ref_name }}"
+          name: "PDF Direct Editor ${{ github.ref_name }}"
           draft: false
           files: |
             release/*.exe
