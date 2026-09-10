@@ -1,7 +1,8 @@
-// pro-feedback: local Feedback tab + GitHub Issues bridge (free, no paid service)
+// pro-feedback: LIVE shared feedback via GitHub Issues (free, no paid service) + local draft
 import { status, reg } from './pro-core.js'
 
 const KEY = 'botim-feedback-v1'
+const GH_ISSUES_API = 'https://api.github.com/repos/noahotim/pdf-direct-editor/issues?state=open&per_page=20'
 
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY) || '[]') } catch { return [] }
@@ -9,15 +10,23 @@ function load() {
 function save(list) {
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(-100))) } catch {}
 }
+async function fetchLive() {
+  try {
+    const r = await fetch(GH_ISSUES_API, { headers: { Accept: 'application/vnd.github.v3+json' }, cache: 'no-store' })
+    if (!r.ok) throw new Error('GitHub ' + r.status)
+    const j = await r.json()
+    return Array.isArray(j) ? j : []
+  } catch (e) { console.warn('live feedback fetch failed', e.message); return null }
+}
 
 function setupFeedbackTab() {
   const tab = document.getElementById('tab-feedback')
   if (!tab) return
   tab.innerHTML = `
-    <h3>Feedback</h3>
+    <h3>Feedback — Live (shared via GitHub)</h3>
     <div class="tool-group" style="border-color:#38bdf8;">
       <h4>💬 Send Feedback</h4>
-      <small style="color:#94a3b8;">Your message is saved locally and you can also open a GitHub Issue (free, public).</small>
+      <small style="color:#94a3b8;">Saved to GitHub Issues — visible to all users (public, free). Also kept locally as draft.</small>
       <label style="font-size:12px;">Name <input id="fbName" placeholder="Your name" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" /></label>
       <label style="font-size:12px;">Email (optional) <input id="fbEmail" placeholder="you@example.com" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" /></label>
       <label style="font-size:12px;">Rating
@@ -30,19 +39,23 @@ function setupFeedbackTab() {
         </select>
       </label>
       <label style="font-size:12px;">Message <textarea id="fbMsg" rows="4" placeholder="What did you like? What can improve?" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;"></textarea></label>
-      <button id="fbSend" class="btn btn-small" style="background:#2563eb;color:#fff;">Send Feedback</button>
-      <button id="fbIssue" class="btn btn-small">Open GitHub Issue…</button>
-      <small style="color:#94a3b8;font-size:10px;">Local copy kept on this device. GitHub Issue is public and free.</small>
+      <button id="fbSend" class="btn btn-small" style="background:#2563eb;color:#fff;">Send to GitHub (live)</button>
+      <small style="color:#94a3b8;font-size:10px;">Opens GitHub — sign in if asked, then Submit. Your feedback becomes visible to everyone.</small>
     </div>
     <div class="tool-group">
-      <h4>📋 Your past feedback (this device)</h4>
-      <div id="fbList" class="form-list">No feedback yet</div>
+      <h4>🌐 Live feedback (all users — GitHub Issues)</h4>
+      <div id="fbLive" class="form-list">Loading live feedback…</div>
+      <button id="fbRefreshLive" class="btn btn-small">↻ Refresh live</button>
+    </div>
+    <div class="tool-group">
+      <h4>📋 Your drafts (this device only)</h4>
+      <div id="fbList" class="form-list">No drafts yet</div>
     </div>
   `
-  const list = () => {
+  const renderLocal = () => {
     const box = document.getElementById('fbList')
     const items = load()
-    if (!items.length) { box.textContent = 'No feedback yet'; return }
+    if (!items.length) { box.textContent = 'No drafts yet'; return }
     box.innerHTML = ''
     items.slice(-10).reverse().forEach((it, idx) => {
       const d = document.createElement('div')
@@ -50,33 +63,39 @@ function setupFeedbackTab() {
       d.innerHTML = `<b>${it.stars} — ${it.name || 'Anonymous'}</b> <small>${new Date(it.at).toLocaleString()}</small><br/><small>${it.msg.slice(0, 120)}</small>`
       const del = document.createElement('button')
       del.className = 'btn btn-small btn-danger'; del.textContent = 'Delete'; del.style.width = 'auto'
-      del.onclick = () => { const all = load(); all.splice(all.length - 1 - idx, 1); save(all); list() }
+      del.onclick = () => { const all = load(); all.splice(all.length - 1 - idx, 1); save(all); renderLocal() }
       d.appendChild(del)
       box.appendChild(d)
     })
   }
-  document.getElementById('fbSend').onclick = () => {
-    const name = document.getElementById('fbName').value.trim()
-    const email = document.getElementById('fbEmail').value.trim()
-    const rate = document.getElementById('fbRate').value
-    const msg = document.getElementById('fbMsg').value.trim()
-    if (!msg) return status('Please write a message')
-    const stars = '★'.repeat(+rate) + '☆'.repeat(5 - +rate)
-    const rec = { name, email, rate: +rate, stars, msg, at: Date.now() }
-    const all = load(); all.push(rec); save(all)
-    document.getElementById('fbMsg').value = ''
-    list()
-    status('Thanks! Feedback saved locally ✓ — also consider opening a GitHub Issue so the dev sees it')
+  const renderLive = async () => {
+    const box = document.getElementById('fbLive')
+    box.textContent = 'Loading…'
+    const issues = await fetchLive()
+    if (issues === null) { box.textContent = 'Could not load live feedback (offline or GitHub rate-limit). Your local drafts are still below.'; return }
+    if (!issues.length) { box.innerHTML = '<small>No public feedback yet — be the first!</small>'; return }
+    box.innerHTML = ''
+    issues.slice(0, 12).forEach((iss) => {
+      const d = document.createElement('div')
+      d.className = 'form-item'; d.style.cursor = 'pointer'
+      d.innerHTML = `<b>#${iss.number} ${iss.title.slice(0, 60)}</b> <small>by ${iss.user?.login || '?'} • ${new Date(iss.created_at).toLocaleDateString()}</small><br/><small>${(iss.body || '').slice(0, 120).replace(/</g, '&lt;')}</small>`
+      d.onclick = () => window.open(iss.html_url, '_blank')
+      box.appendChild(d)
+    })
   }
-  document.getElementById('fbIssue').onclick = () => {
+  document.getElementById('fbSend').onclick = () => {
     const name = document.getElementById('fbName').value.trim() || 'Anonymous'
-    const msg = document.getElementById('fbMsg').value.trim() || '(no message)'
+    const msg = document.getElementById('fbMsg').value.trim()
     const stars = document.getElementById('fbRate').value
-    const body = encodeURIComponent(`**From:** ${name}\n**Rating:** ${stars}/5\n\n**Message:**\n${msg}\n\n— sent from BOTIM DOCSHUB v${window.APP_VERSION || '1.3.0'}`)
+    if (!msg) return status('Please write a message')
+    const all = load(); all.push({ name, stars: '★'.repeat(+stars) + '☆'.repeat(5 - +stars), msg, at: Date.now() }); save(all); renderLocal()
+    const body = encodeURIComponent(`**From:** ${name}\n**Rating:** ${stars}/5\n\n**Message:**\n${msg}\n\n— sent from BOTIM DOCSHUB v${window.APP_VERSION || '1.3.1'}`)
     const title = encodeURIComponent(`Feedback: ${msg.slice(0, 50)}`)
     window.open(`https://github.com/noahotim/pdf-direct-editor/issues/new?title=${title}&body=${body}`, '_blank')
+    status('Opening GitHub — please click Submit there to make it live for everyone ✓')
   }
-  list()
+  document.getElementById('fbRefreshLive').onclick = renderLive
+  renderLocal(); renderLive()
 }
 
 ;(() => {

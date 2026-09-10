@@ -58,8 +58,9 @@ if (localStorage.getItem('pde-theme') === 'light') document.body.classList.add('
 function toggleTheme() {
   document.body.classList.toggle('light')
   localStorage.setItem('pde-theme', document.body.classList.contains('light') ? 'light' : 'dark')
-  status(document.body.classList.contains('light') ? 'Light theme' : 'Dark theme')
+  status(document.body.classList.contains('light') ? 'Light theme — bright' : 'Dark theme — comfortable')
 }
+document.getElementById('themeToggle')?.addEventListener('click', toggleTheme)
 
 // ---- statusbar ----
 setInterval(() => {
@@ -299,7 +300,7 @@ function showShortcuts() {
 }
 function showAbout() {
   showInfo('About', `<div style="font-size:12px;line-height:1.8;">
-    <b>BOTIM DOCSHUB v1.3.1</b><br/>Developed by <b>Otim Noah</b><br/>
+    <b>BOTIM DOCSHUB v1.4.0</b><br/>Developed by <b>Otim Noah</b><br/>
     Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
     Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }

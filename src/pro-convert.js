@@ -43,26 +43,13 @@ async function pdfToDocx() {
         spacing: { after: 100 }
       }))
     }
-    // add page image as fallback for layout (render page to canvas, embed as image)
-    try {
-      const vp = page.getViewport({ scale: 1.5 })
-      const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
-      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
-      const blob = await new Promise(r => c.toBlob(r, 'image/png'))
-      const buf = await blob.arrayBuffer()
-      // docx ImageRun needs image data
-      children.push(new Paragraph({
-        children: [new (await import('docx')).ImageRun({ data: new Uint8Array(buf), transformation: { width: 500, height: 500 * (c.height / c.width) } })],
-        alignment: AlignmentType.CENTER
-      }))
-    } catch {}
     docSections.push({ children })
     t.log(`page ${i}/${e.totalPages}`); setBar((i / e.totalPages) * 100)
   }
   const doc = new Document({ sections: docSections.map(s => ({ properties: {}, children: s.children })) })
   const out = await Packer.toBlob(doc)
   downloadBlob(out, (window.__docName || 'document').replace(/\.pdf$/i, '') + '.docx')
-  t.done(`Converted ${e.totalPages} pages → Word (.docx) — editable text + page images for layout`)
+  t.done(`Converted ${e.totalPages} pages → Word (.docx) — fully editable text, layout preserved as paragraphs`)
 }
 
 // ---------- Word (DOCX) → PDF ----------
@@ -111,31 +98,41 @@ async function docxToPdf(files) {
   t.done(`Word → PDF done for ${list.length} file(s)`)
 }
 
-// ---------- PDF → PPTX ----------
+// ---------- PDF → PPTX (editable text, no images) ----------
 async function pdfToPptx() {
   const e = E()
   if (!e.pdfDocProxy) return status('Open a PDF first')
   const PptxGenJS = (await import('pptxgenjs')).default
   const pptx = new PptxGenJS()
-  pptx.layout = 'LAYOUT_16x9'
-  status('Converting PDF → PowerPoint…')
+  pptx.layout = 'LAYOUT_WIDE'
+  pptx.author = 'BOTIM DOCSHUB by Otim Noah'
+  pptx.title = (window.__docName || 'document').replace(/\.pdf$/i, '')
+  status('Converting PDF → PowerPoint (editable text)…')
   const t = taskBegin('PDF → PowerPoint')
   for (let i = 1; i <= e.totalPages; i++) {
     const page = await e.pdfDocProxy.getPage(i)
-    const vp = page.getViewport({ scale: 1.8 })
-    const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
-    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
-    const dataUrl = c.toDataURL('image/png')
     const tc = await page.getTextContent()
-    const text = (tc.items || []).map(it => it.str).join(' ').slice(0, 500)
+    // group into lines by y
+    const lines = {}
+    for (const it of tc.items || []) {
+      const y = Math.round(it.transform[5])
+      if (!lines[y]) lines[y] = []
+      lines[y].push(it.str)
+    }
+    const sorted = Object.keys(lines).map(Number).sort((a, b) => b - a)
+    const paras = sorted.map(y => lines[y].join(' ').trim()).filter(Boolean).join('\n\n')
     const slide = pptx.addSlide()
-    slide.addImage({ data: dataUrl, x: 0.2, y: 0.2, w: 9.6, h: 5.0 })
-    if (text.trim()) slide.addText(text, { x: 0.2, y: 5.4, w: 9.6, h: 1.5, fontSize: 8, color: '363636' })
+    slide.addText(`Page ${i}`, { x: 0.3, y: 0.2, w: 9.4, h: 0.4, fontSize: 10, color: '64748b', align: 'center' })
+    if (paras.trim()) {
+      slide.addText(paras.slice(0, 4000), { x: 0.4, y: 0.7, w: 9.2, h: 4.6, fontSize: 9, color: '0f172a', valign: 'top' })
+    } else {
+      slide.addText('(No extractable text on this page — scanned image)', { x: 0.4, y: 2.5, w: 9.2, h: 1, fontSize: 10, color: '94a3b8', italic: true, align: 'center' })
+    }
     t.log(`slide ${i}/${e.totalPages}`); setBar((i / e.totalPages) * 100)
   }
   const out = await pptx.write({ outputType: 'blob' })
   downloadBlob(out, (window.__docName || 'document').replace(/\.pdf$/i, '') + '.pptx')
-  t.done(`Converted ${e.totalPages} pages → PowerPoint (images + text)`)
+  t.done(`Converted ${e.totalPages} pages → PowerPoint — fully editable text per slide`)
 }
 
 // ---------- PPTX → PDF ----------
@@ -190,8 +187,8 @@ function setupConvertTab() {
   tab.innerHTML = `
     <h3>Convert <span style="color:#38bdf8;font-size:11px;">BOTIM DOCSHUB</span></h3>
     <div class="tool-group" style="border-color:#f59e0b;">
-      <h4>📄 PDF → Office (editable)</h4>
-      <small style="color:#94a3b8;">Text stays editable, page images keep layout. 100% local, no upload.</small>
+      <h4>📄 PDF → Office (fully editable)</h4>
+      <small style="color:#94a3b8;">Real editable text — not images. 100% local, no upload, layout preserved as paragraphs.</small>
       <button id="cPdfWord" class="btn btn-small" style="background:#2563eb;color:#fff;">📄 PDF → Word (.docx)</button>
       <button id="cPdfPpt" class="btn btn-small" style="background:#7c3aed;color:#fff;">📄 PDF → PowerPoint (.pptx)</button>
     </div>
@@ -208,8 +205,8 @@ function setupConvertTab() {
     <div class="tool-group">
       <h4>How layout is kept</h4>
       <small style="color:#94a3b8;line-height:1.6;">
-        • PDF → Word: text extracted with positions, rebuilt as docx paragraphs + page images behind text for fidelity.<br/>
-        • PDF → PPT: each PDF page → one slide (image + selectable text below).<br/>
+        • PDF → Word: real editable paragraphs + headings (no images) — text stays selectable.<br/>
+        • PDF → PPT: real editable text boxes per slide — fully editable in PowerPoint.<br/>
         • Word/PPT → PDF: text reflowed to PDF pages with headings preserved.<br/>
         All local, no paid API, no upload to server.
       </small>
