@@ -5,7 +5,7 @@
 // download + install. Works in the installed desktop app, PWA and browser.
 import { status, reg, openDialog } from './pro-core.js'
 
-export const APP_VERSION = '1.3.0'
+export const APP_VERSION = '1.3.1'
 // Update channel: version.json is attached to every GitHub release, fetched
 // through the stable "latest" URL (no server to maintain).
 // To move hosts, point this at any HTTPS URL serving version.json and republish.

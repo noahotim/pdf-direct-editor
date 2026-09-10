@@ -36,7 +36,7 @@ jobs:
 
       - name: Package desktop app (Electron)
         run: |
-          npx electron-packager . "BOTIM-PDF-EDITOR" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" --ignore="^/node_modules" --ignore="^/.git"
+          npx electron-packager . "BOTIM-DOCSHUB" --platform=win32 --arch=x64 --out=release --overwrite --ignore="^/release" --ignore="^/node_modules" --ignore="^/.git"
         shell: pwsh
 
       - name: Build installer (NSIS)

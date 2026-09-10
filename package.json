@@ -1,84 +1,84 @@
 {
-    "name":  "botim-pdf-editor",
-    "version":  "1.3.0",
-    "description":  "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint editor \u0026 converter - edit, convert, merge without disorganising layout.",
-    "author":  "Otim Noah \u003cotim.noah@example.com\u003e",
-    "repository":  {
-                       "type":  "git",
-                       "url":  "https://github.com/noahotim/pdf-direct-editor.git"
-                   },
-    "main":  "electron/main.js",
-    "type":  "module",
-    "scripts":  {
-                    "dev":  "vite",
-                    "build":  "vite build",
-                    "preview":  "vite preview",
-                    "electron":  "electron electron/main.js",
-                    "electron:dev":  "concurrently \"vite --port 5173\" \"wait-on http://localhost:5173 \u0026\u0026 electron electron/main.js\"",
-                    "dist":  "vite build; if ($?) { electron-builder --win --x64 }",
-                    "pack":  "electron-builder --dir"
-                },
-    "dependencies":  {
-                         "docx":  "^9.7.1",
-                         "electron-updater":  "^6.8.9",
-                         "jszip":  "^3.10.2",
-                         "mammoth":  "^1.12.2",
-                         "pdf-lib":  "^1.17.1",
-                         "pdfjs-dist":  "^4.4.168",
-                         "pptxgenjs":  "^4.0.1"
-                     },
-    "devDependencies":  {
-                            "concurrently":  "^8.2.2",
-                            "electron":  "^31.0.0",
-                            "electron-builder":  "^24.13.3",
-                            "electron-packager":  "^17.1.2",
-                            "vite":  "^5.4.0",
-                            "wait-on":  "^7.2.0"
-                        },
-    "build":  {
-                  "appId":  "com.botim.docshub",
-                  "productName":  "BOTIM DOCSHUB",
-                  "copyright":  "Copyright Â© 2026 Otim Noah â€” BOTIM DOCSHUB",
-                  "publish":  [
-                                  {
-                                      "provider":  "github",
-                                      "owner":  "noahotim",
-                                      "repo":  "pdf-direct-editor"
-                                  }
-                              ],
-                  "directories":  {
-                                      "output":  "release"
-                                  },
-                  "files":  [
-                                "dist/**/*",
-                                "electron/**/*",
-                                "package.json"
-                            ],
-                  "win":  {
-                              "target":  [
-                                             "nsis",
-                                             "portable"
-                                         ],
-                              "icon":  "public/icon.png",
-                              "publisherName":  "Otim Noah",
-                              "verifyUpdateCodeSignature":  false,
-                              "signAndEditExecutable":  false,
-                              "signDlls":  false
-                          },
-                  "nsis":  {
-                               "oneClick":  false,
-                               "allowToChangeInstallationDirectory":  true,
-                               "createDesktopShortcut":  true,
-                               "createStartMenuShortcut":  true,
-                               "shortcutName":  "BOTIM DOCSHUB",
-                               "displayLanguageSelector":  false,
-                               "installerIcon":  "public/icon.png",
-                               "uninstallerIcon":  "public/icon.png",
-                               "artifactName":  "BOTIM-DOCSHUB-Setup-${version}.exe",
-                               "include":  "installer.nsh"
-                           },
-                  "portable":  {
-                                   "artifactName":  "BOTIM-DOCSHUB-Portable-${version}.exe"
-                               }
-              }
+  "name": "botim-pdf-editor",
+  "version": "1.3.1",
+  "description": "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint editor & converter - edit, convert, merge without disorganising layout.",
+  "author": "Otim Noah <otim.noah@example.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noahotim/pdf-direct-editor.git"
+  },
+  "main": "electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron": "electron electron/main.js",
+    "electron:dev": "concurrently \"vite --port 5173\" \"wait-on http://localhost:5173 && electron electron/main.js\"",
+    "dist": "vite build; if ($?) { electron-builder --win --x64 }",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "docx": "^9.7.1",
+    "electron-updater": "^6.8.9",
+    "jszip": "^3.10.2",
+    "mammoth": "^1.12.2",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.4.168",
+    "pptxgenjs": "^4.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2",
+    "vite": "^5.4.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.botim.docshub",
+    "productName": "BOTIM DOCSHUB",
+    "copyright": "Copyright \u00c2\u00a9 2026 Otim Noah \u00e2\u20ac\u201d BOTIM DOCSHUB",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "noahotim",
+        "repo": "pdf-direct-editor"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/icon.png",
+      "publisherName": "Otim Noah",
+      "verifyUpdateCodeSignature": false,
+      "signAndEditExecutable": false,
+      "signDlls": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BOTIM DOCSHUB",
+      "displayLanguageSelector": false,
+      "installerIcon": "public/icon.png",
+      "uninstallerIcon": "public/icon.png",
+      "artifactName": "BOTIM-DOCSHUB-Setup-${version}.exe",
+      "include": "installer.nsh"
+    },
+    "portable": {
+      "artifactName": "BOTIM-DOCSHUB-Portable-${version}.exe"
+    }
+  }
 }
