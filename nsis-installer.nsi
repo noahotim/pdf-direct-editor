@@ -1,6 +1,6 @@
 ; BOTIM DOCSHUB by Otim Noah - Installer (PDF â€¢ Word â€¢ PowerPoint)
 !define PRODUCT_NAME "BOTIM DOCSHUB"
-!define PRODUCT_VERSION "1.4.1"
+!define PRODUCT_VERSION "1.5.0"
 !define PRODUCT_PUBLISHER "Otim Noah"
 !define PRODUCT_WEB_SITE "https://github.com/noahotim/pdf-direct-editor"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\BOTIM-DOCSHUB.exe"
@@ -11,19 +11,19 @@ SetCompressor zlib
 RequestExecutionLevel admin
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "release\BOTIM-DOCSHUB-Setup-1.4.1.exe"
+OutFile "release\BOTIM-DOCSHUB-Setup-1.5.0.exe"
 InstallDir "$PROGRAMFILES\BOTIM DOCSHUB"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
 
-VIProductVersion "1.4.1.0"
+VIProductVersion "1.5.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "CompanyName" "Otim Noah"
 VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Otim Noah â€” BOTIM DOCSHUB"
 VIAddVersionKey "FileDescription" "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint Editor & Converter"
-VIAddVersionKey "FileVersion" "1.4.1"
-VIAddVersionKey "ProductVersion" "1.4.1"
+VIAddVersionKey "FileVersion" "1.5.0"
+VIAddVersionKey "ProductVersion" "1.5.0"
 
 Icon "public\icon.ico"
 

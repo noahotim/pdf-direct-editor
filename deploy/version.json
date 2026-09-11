@@ -1,9 +1,9 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.4.1/BOTIM-DOCSHUB-Setup-1.4.1.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.4.1/BOTIM-DOCSHUB-Portable-1.4.1.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.5.0/BOTIM-DOCSHUB-Setup-1.5.0.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.5.0/BOTIM-DOCSHUB-Portable-1.5.0.zip",
   "released": "2026-09-10",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.4.0 \u2014 true editable Word/PPT conversion (no images), visible theme switch, live GitHub feedback, update checker 3-way fallback (no more check internet error), auto-update no reinstall"
+  "notes": "BOTIM DOCSHUB 1.5.0 - real update download (downloads + runs real Setup.exe, no localStorage), free open-source local AI (semantic search, ask document, topic clusters via transformers.js), editable Word/PPT conversion, theme switch, live GitHub feedback"
 }

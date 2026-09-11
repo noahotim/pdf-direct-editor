@@ -5,11 +5,12 @@
 // download + install. Works in the installed desktop app, PWA and browser.
 import { status, reg, openDialog } from './pro-core.js'
 
-export const APP_VERSION = '1.4.1'
+export const APP_VERSION = '1.5.0'
 // Update channel: version.json is attached to every GitHub release, fetched
 // through the stable "latest" URL (no server to maintain).
 // To move hosts, point this at any HTTPS URL serving version.json and republish.
 export const UPDATE_JSON_URL = 'https://github.com/noahotim/pdf-direct-editor/releases/latest/download/version.json'
+export const RELEASES_PAGE = 'https://github.com/noahotim/pdf-direct-editor/releases/latest'
 
 function cmp(a, b) {
   const pa = String(a).split('.').map((x) => parseInt(x) || 0)
@@ -64,8 +65,8 @@ function showBanner(info) {
   if (document.getElementById('updateBanner')) return
   const bar = document.createElement('div')
   bar.id = 'updateBanner'
-  const isDesktop = !!(window.botimUpdater || window.desktop?.isDesktop)
-  const btnLabel = isDesktop && window.botimUpdater ? 'Update Now' : '⬇️ Download Update'
+  const isDesktop = !!(window.botimUpdater && window.desktop?.isDesktop)
+  const btnLabel = isDesktop ? '⬇️ Update Now' : '⬇️ Download Update'
   bar.innerHTML = `<span>🎉 <b>Update available: v${info.version}</b> (you have v${APP_VERSION})${info.notes ? ` — ${info.notes}` : ''}</span>
     <span id="updProg" style="font-size:11px;color:#bbf7d0;display:none;"></span>
     <button id="updNow" class="btn btn-small" style="width:auto;background:#16a34a;border-color:#16a34a;color:#fff;">${btnLabel}</button>
@@ -74,43 +75,52 @@ function showBanner(info) {
   nav.after(bar)
   const updNow = document.getElementById('updNow')
   const prog = document.getElementById('updProg')
-  const isAuto = !!(window.botimUpdater && isDesktop)
   updNow.onclick = async () => {
-    if (isAuto) {
+    if (!info.url) { status('No download link available — opening releases page'); if (window.botimUpdater) window.botimUpdater.openUrl(RELEASES_PAGE); else window.open(RELEASES_PAGE, '_blank'); return }
+    if (isDesktop) {
       updNow.textContent = 'Downloading…'
       updNow.disabled = true
       prog.style.display = 'inline'
       prog.textContent = 'Starting download…'
       try {
-        const dl = await window.botimUpdater.download()
-        if (dl && dl.ok === false) throw new Error(dl.error || 'download failed')
-        // download-progress events will update prog; downloaded event will flip button
+        const dl = await window.botimUpdater.download(info.url)   // downloads the REAL Setup.exe
+        if (!dl || dl.ok === false) throw new Error((dl && dl.error) || 'download failed')
+        // progress + downloaded events update the UI below
       } catch (e) {
         updNow.textContent = btnLabel
         updNow.disabled = false
-        prog.textContent = 'Download failed — opening browser instead'
-        setTimeout(() => { if (info.url) window.open(info.url, '_blank') }, 800)
-        status('Auto-update failed, opening download page: ' + e.message)
+        prog.textContent = 'Auto-download failed — opening browser download instead'
+        status('Auto-update failed, opening real download: ' + e.message)
+        window.botimUpdater.openUrl(info.url)
       }
     } else {
-      if (info.url) window.open(info.url, '_blank')
-      status('Downloading update — run the Setup file when it finishes to upgrade')
+      // Web/PWA: trigger a real browser download of the Setup.exe (not localStorage)
+      const a = document.createElement('a')
+      a.href = info.url
+      a.download = info.url.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'
+      a.rel = 'noopener'
+      document.body.appendChild(a); a.click(); a.remove()
+      status('Downloading the real installer… run it when finished to update')
     }
   }
   document.getElementById('updLater').onclick = () => {
     bar.remove()
     try { localStorage.setItem('pde-update-dismissed', info.version) } catch { /* ignore */ }
   }
-  // listen for autoUpdater progress/downloaded
-  if (isAuto && window.botimUpdater.onStatus) {
+  // listen for real download progress / completion from Electron main process
+  if (isDesktop && window.botimUpdater.onStatus) {
     window.botimUpdater.onStatus((p) => {
-      if (p.type === 'progress') prog.textContent = `Downloading… ${p.percent}%`
+      if (p.type === 'progress') prog.textContent = `Downloading installer… ${p.percent}%${p.total ? ` (${(p.downloaded/1048576).toFixed(1)}/${(p.total/1048576).toFixed(1)} MB)` : ''}`
       if (p.type === 'downloaded') {
-        prog.textContent = `Downloaded v${p.version} — ready to restart`
-        updNow.textContent = 'Restart Now'
+        prog.textContent = `Downloaded installer (${(p.size/1048576).toFixed(1)} MB) — ready to update`
+        updNow.textContent = '🔄 Restart & Update'
         updNow.disabled = false
-        updNow.onclick = () => window.botimUpdater.quitAndInstall()
-        status('Update downloaded — click Restart to install')
+        updNow.onclick = async () => {
+          status('Installing update — the app will close and reopen…')
+          const r = await window.botimUpdater.install()
+          if (r && r.ok === false) status('Install failed: ' + r.error)
+        }
+        status('Update downloaded — click "Restart & Update" to install')
       }
       if (p.type === 'error') prog.textContent = 'Update error: ' + p.message
     })
@@ -118,23 +128,6 @@ function showBanner(info) {
 }
 
 export async function checkForUpdates(manual = false) {
-  // Desktop auto-updater path — no reinstall, just update
-  if (window.botimUpdater && window.desktop?.isDesktop) {
-    try {
-      const r = await window.botimUpdater.check()
-      if (r && r.available && r.version) {
-        const info = { version: r.version, url: r.url || `https://github.com/noahotim/pdf-direct-editor/releases/tag/v${r.version}`, notes: '' }
-        // also fetch version.json for notes if available (non-blocking)
-        try { const j = await fetchRemote(new AbortController().signal); if (j && j.notes) info.notes = j.notes; if (j && j.url) info.url = j.url } catch {}
-        let dismissed = null; try { dismissed = localStorage.getItem('pde-update-dismissed') } catch {}
-        if (dismissed !== info.version || manual) showBanner(info)
-        if (!manual) status(`Update available: v${info.version} — click Update Now (no reinstall)`)
-        return info
-      }
-      if (manual) status(`You are on the latest version (v${APP_VERSION}) — up to date ✓`)
-      return null
-    } catch (e) { console.warn('autoUpdater check failed, falling back to fetch', e.message) }
-  }
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 20000)
   try {
@@ -189,12 +182,18 @@ window.addEventListener('load', () => setTimeout(() => checkForUpdates(false), 4
       const isAuto = !!(window.botimUpdater && window.desktop?.isDesktop)
       const body = showInfo('Update Available', `<div style="font-size:12px;line-height:1.8;">A new version is ready:<br/><b>v${info.version}</b> (installed: v${APP_VERSION})<br/>${info.notes || ''}<br/><small style="color:#94a3b8;">${isAuto ? 'Click Update Now — downloads in background, then Restart (no reinstall).' : 'Click Download, then run the Setup file to upgrade.'}</small></div>`)
       const ok = document.getElementById('actionOk')
-      ok.textContent = isAuto ? 'Update Now' : 'Download'
+      ok.textContent = isAuto ? '⬇️ Update Now' : '⬇️ Download'
       ok.onclick = async () => {
         document.getElementById('actionModal').classList.add('hidden')
+        if (!info.url) { if (window.botimUpdater) window.botimUpdater.openUrl(RELEASES_PAGE); else window.open(RELEASES_PAGE, '_blank'); return }
         if (isAuto) {
-          try { const r = await window.botimUpdater.download(); if (r && r.ok === false) throw new Error(r.error); status('Downloading update in background… check the green banner for progress') } catch (e) { status('Auto-download failed, opening browser: ' + e.message); if (info.url) window.open(info.url, '_blank') }
-        } else { if (info.url) window.open(info.url, '_blank') }
+          try { const r = await window.botimUpdater.download(info.url); if (r && r.ok === false) throw new Error(r.error); status('Downloading the real installer in background… see the green banner for progress') }
+          catch (e) { status('Auto-download failed, opening real download: ' + e.message); window.botimUpdater.openUrl(info.url) }
+        } else {
+          const a = document.createElement('a'); a.href = info.url; a.download = info.url.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'; a.rel='noopener'
+          document.body.appendChild(a); a.click(); a.remove()
+          status('Downloading the real installer… run it when finished to update')
+        }
       }
     }
   })

@@ -1,6 +1,6 @@
 {
   "name": "botim-pdf-editor",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint editor & converter - edit, convert, merge without disorganising layout.",
   "author": "Otim Noah <otim.noah@example.com>",
   "repository": {
@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "docx": "^9.7.1",
-    "electron-updater": "^6.8.9",
     "jszip": "^3.10.2",
     "mammoth": "^1.12.2",
     "pdf-lib": "^1.17.1",

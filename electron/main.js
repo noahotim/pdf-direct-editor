@@ -1,10 +1,10 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import http from 'http'
 import fs from 'fs'
-let autoUpdater = null
-try { autoUpdater = (await import('electron-updater')).autoUpdater } catch { console.log('electron-updater not installed — manual download fallback only') }
+import os from 'os'
+import { spawn } from 'child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = !app.isPackaged
@@ -69,30 +69,63 @@ async function createWindow(){
 
 app.whenReady().then(async () => {
   await createWindow()
-  setupAutoUpdater()
+  setupUpdater()
 })
 app.on('window-all-closed', ()=>{ if(process.platform!=='darwin') app.quit() })
 app.on('activate', ()=>{ if(BrowserWindow.getAllWindows().length===0) createWindow() })
 
-// ===== true auto-update (no reinstall) — uses GitHub Releases via electron-updater =====
-function setupAutoUpdater(){
-  if(!autoUpdater) return
-  const win = BrowserWindow.getAllWindows()[0]
-  const send = (payload) => { try{ win?.webContents.send('botim:updateStatus', payload) }catch{} }
-  autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
-  // GitHub provider is auto-detected from package.json repository + publish; no extra config needed for public repo
-  autoUpdater.on('checking-for-update', ()=> send({ type:'checking' }))
-  autoUpdater.on('update-available', (info)=> send({ type:'available', version: info.version }))
-  autoUpdater.on('update-not-available', ()=> send({ type:'not-available' }))
-  autoUpdater.on('error', (err)=> send({ type:'error', message: String(err.message||err) }))
-  autoUpdater.on('download-progress', (p)=> send({ type:'progress', percent: Math.round(p.percent||0), bytesPerSecond: p.bytesPerSecond||0 }))
-  autoUpdater.on('update-downloaded', (info)=> send({ type:'downloaded', version: info.version })
-  )
-  ipcMain.handle('botim:checkUpdate', async ()=>{
-    if(!autoUpdater) return { supported:false }
-    try{ const r = await autoUpdater.checkForUpdates(); return { supported:true, available: !!r?.updateInfo, version: r?.updateInfo?.version||null, current: app.getVersion() } }catch(e){ return { supported:true, error: String(e.message||e) } }
+// ===== custom auto-update: downloads the REAL Setup.exe from GitHub and runs it (no localStorage) =====
+function setupUpdater(){
+  let installerPath = null
+
+  // Download the given URL (follows GitHub redirects) to a temp .exe, streaming progress to the renderer.
+  ipcMain.handle('botim:download', async (event, url) => {
+    try {
+      if (!url || !/^https?:\/\//i.test(url)) return { ok:false, error:'No valid download URL (version.json missing url)' }
+      const dir = path.join(os.tmpdir(), 'botim-update')
+      fs.mkdirSync(dir, { recursive: true })
+      const clean = new URL(url).pathname.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'
+      const file = path.join(dir, clean.toLowerCase().endsWith('.exe') ? clean : 'BOTIM-DOCSHUB-Setup.exe')
+      try { fs.unlinkSync(file) } catch {}
+      await new Promise((resolve, reject) => {
+        const req = net.request({ method:'GET', url, redirect:'follow' })
+        req.on('response', (res) => {
+          if (res.statusCode >= 400) return reject(new Error('HTTP ' + res.statusCode))
+          const total = parseInt(res.headers['content-length'] || '0', 10)
+          let got = 0
+          const out = fs.createWriteStream(file)
+          out.on('error', reject)
+          res.on('data', (chunk) => {
+            got += chunk.length
+            out.write(chunk)
+            const pct = total ? Math.round((got / total) * 100) : 0
+            try { event.sender.send('botim:updateStatus', { type:'progress', percent: pct, downloaded: got, total }) } catch {}
+          })
+          res.on('end', () => out.end(() => resolve()))
+          res.on('error', reject)
+        })
+        req.on('error', reject)
+        req.end()
+      })
+      const size = fs.existsSync(file) ? fs.statSync(file).size : 0
+      if (size < 500000) return { ok:false, error:`Downloaded file too small (${size} bytes) — not an installer` }
+      installerPath = file
+      try { event.sender.send('botim:updateStatus', { type:'downloaded', path: file, size }) } catch {}
+      return { ok:true, path:file, size }
+    } catch (e) { return { ok:false, error:String(e && e.message || e) } }
   })
-  ipcMain.handle('botim:downloadUpdate', async ()=>{ try{ await autoUpdater.downloadUpdate(); return { ok:true } }catch(e){ return { ok:false, error: String(e.message||e) } } })
-  ipcMain.handle('botim:quitAndInstall', ()=>{ try{ autoUpdater.quitAndInstall(false, true) }catch(e){ app.relaunch(); app.exit(0) } })
+
+  // Run the downloaded installer silently and quit so it can replace files.
+  ipcMain.handle('botim:install', async () => {
+    try {
+      if (!installerPath || !fs.existsSync(installerPath)) return { ok:false, error:'No downloaded installer found' }
+      const child = spawn(installerPath, ['/S'], { detached:true, stdio:'ignore' })
+      child.unref()
+      setTimeout(() => { app.quit() }, 1000)
+      return { ok:true }
+    } catch (e) { return { ok:false, error:String(e && e.message || e) } }
+  })
+
+  // Fallback: open a URL in the system browser (real GitHub download page)
+  ipcMain.handle('botim:openUrl', (e, url) => { try { shell.openExternal(url) } catch {} ; return { ok:true } })
 }
