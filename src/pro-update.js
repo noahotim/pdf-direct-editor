@@ -5,7 +5,7 @@
 // download + install. Works in the installed desktop app, PWA and browser.
 import { status, reg, openDialog } from './pro-core.js'
 
-export const APP_VERSION = '1.6.1'
+export const APP_VERSION = '1.7.0'
 // Update channel: version.json is attached to every GitHub release, fetched
 // through the stable "latest" URL (no server to maintain).
 // To move hosts, point this at any HTTPS URL serving version.json and republish.
@@ -59,6 +59,34 @@ async function fetchRemote(signal) {
     if (tag) return { version: tag, url: rel.html_url, notes: rel.body ? rel.body.slice(0, 200) : '' }
   } catch (e) { lastErr = e }
   throw lastErr || new Error('all update sources failed')
+}
+
+// ---- automatic update preference (default ON): download + install + relaunch, no manual steps ----
+const AUTO_KEY = 'botim-auto-update'
+function isAutoUpdate() { try { return localStorage.getItem(AUTO_KEY) !== 'off' } catch { return true } }
+function setAutoUpdate(on) { try { localStorage.setItem(AUTO_KEY, on ? 'on' : 'off') } catch {} ; status('Automatic updates ' + (on ? 'ON — updates install themselves' : 'OFF — you will be asked')) }
+
+// Download the real installer and run it immediately (in place), then the app restarts on the new version.
+async function autoUpdateNow(info) {
+  if (!window.botimUpdater || !info || !info.url) return false
+  const bar = document.getElementById('updateBanner')
+  const prog = document.getElementById('updProg')
+  const updNow = document.getElementById('updNow')
+  if (prog) { prog.style.display = 'inline'; prog.textContent = 'Auto-updating: downloading…' }
+  if (updNow) { updNow.disabled = true; updNow.textContent = 'Updating…' }
+  try {
+    const dl = await window.botimUpdater.download(info.url)
+    if (!dl || dl.ok === false) throw new Error((dl && dl.error) || 'download failed')
+    if (prog) prog.textContent = 'Installing update — the app will restart automatically…'
+    await window.botimUpdater.install()   // runs the installer silently and quits → restarts updated
+    return true
+  } catch (e) {
+    if (prog) prog.textContent = 'Auto-update failed: ' + e.message
+    if (updNow) { updNow.disabled = false; updNow.textContent = '⬇️ Update Now' }
+    if (bar) bar.dataset.failed = '1'
+    status('Auto-update failed — click Update Now to try again')
+    return false
+  }
 }
 
 function showBanner(info) {
@@ -143,7 +171,14 @@ export async function checkForUpdates(manual = false) {
       let dismissed = null
       try { dismissed = localStorage.getItem('pde-update-dismissed') } catch { /* ignore */ }
       if (dismissed !== info.version || manual) showBanner(info)
-      if (!manual) status(`Update available: v${info.version} — see the banner on top`)
+      // fully automatic: download + install + relaunch in place, no manual steps
+      const isDesktop = !!(window.botimUpdater && window.desktop?.isDesktop)
+      if (!manual && isDesktop && isAutoUpdate() && info.url) {
+        status(`Auto-updating to v${info.version}…`)
+        autoUpdateNow(info)
+      } else if (!manual) {
+        status(`Update available: v${info.version} — see the banner on top`)
+      }
       return info
     }
     if (cmpRes < 0) {
@@ -198,6 +233,18 @@ window.addEventListener('load', () => setTimeout(() => checkForUpdates(false), 4
     }
   })
   drop.appendChild(b)
+  // auto-update toggle
+  const t = document.createElement('button')
+  t.dataset.act = 'upd-auto'
+  t.textContent = `⚙ Automatic updates: ${isAutoUpdate() ? 'ON' : 'OFF'}`
+  t.addEventListener('click', () => {
+    const now = !isAutoUpdate()
+    setAutoUpdate(now)
+    t.textContent = `⚙ Automatic updates: ${now ? 'ON' : 'OFF'}`
+    document.querySelectorAll('#menubar .menu.open').forEach((m) => m.classList.remove('open'))
+    if (now && window.botimUpdater && window.desktop?.isDesktop) checkForUpdates(false)
+  })
+  drop.appendChild(t)
   const v = document.createElement('div')
   v.style.cssText = 'font-size:11px;color:#94a3b8;padding:4px 10px;'
   v.textContent = `Installed version: v${APP_VERSION}`

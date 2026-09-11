@@ -1,9 +1,9 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.6.1/BOTIM-DOCSHUB-Setup-1.6.1.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.6.1/BOTIM-DOCSHUB-Portable-1.6.1.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.7.0/BOTIM-DOCSHUB-Setup-1.7.0.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.7.0/BOTIM-DOCSHUB-Portable-1.7.0.zip",
   "released": "2026-09-11",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.6.1 - one-click Auto-Fix Health (removes blanks/duplicates, straightens rotation, normalizes sizes, fills metadata) + all 1.6.0 features"
+  "notes": "BOTIM DOCSHUB 1.7.0 - Docs Studio: create/open/edit/save Word (.docx) and PowerPoint (.pptx) + export PDF; fully automatic in-place updates (download+install+relaunch, no manual steps); one-click Auto-Fix Health; order-preserving conversions"
 }
