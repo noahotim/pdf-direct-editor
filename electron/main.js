@@ -82,9 +82,10 @@ function setupUpdater(){
   ipcMain.handle('botim:download', async (event, url) => {
     try {
       if (!url || !/^https?:\/\//i.test(url)) return { ok:false, error:'No valid download URL (version.json missing url)' }
-      const dir = path.join(os.tmpdir(), 'botim-update')
-      fs.mkdirSync(dir, { recursive: true })
-      const clean = new URL(url).pathname.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'
+      // Save into the user's real Downloads folder so it is a normal, visible download
+      let dir = app.getPath('downloads')
+      try { fs.mkdirSync(dir, { recursive: true }) } catch { dir = os.tmpdir() }
+      const clean = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe')
       const file = path.join(dir, clean.toLowerCase().endsWith('.exe') ? clean : 'BOTIM-DOCSHUB-Setup.exe')
       try { fs.unlinkSync(file) } catch {}
       await new Promise((resolve, reject) => {
