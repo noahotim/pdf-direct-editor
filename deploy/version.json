@@ -1,9 +1,9 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.6.0/BOTIM-DOCSHUB-Setup-1.6.0.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.6.0/BOTIM-DOCSHUB-Portable-1.6.0.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.6.1/BOTIM-DOCSHUB-Setup-1.6.1.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.6.1/BOTIM-DOCSHUB-Portable-1.6.1.zip",
   "released": "2026-09-11",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.6.0 - immediate page delete, PNG/JPG cover import, precise word erase (click a word / double-click line / drag), metadata extraction (copy+download JSON), more reliable free local AI (multi-CDN + preload), order-preserving Word/PPT conversion with summarised slides and Summary-to-Word"
+  "notes": "BOTIM DOCSHUB 1.6.1 - one-click Auto-Fix Health (removes blanks/duplicates, straightens rotation, normalizes sizes, fills metadata) + all 1.6.0 features"
 }

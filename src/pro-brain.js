@@ -35,6 +35,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0))
       </div>
       <div class="tool-group"><h4>💡 Suggestions</h4><div id="intelSuggest" class="form-list">Run analysis first.</div></div>
       <div class="tool-group"><h4>🧰 Quick Tools</h4>
+        <button data-qt="autofix" class="btn btn-small" style="background:#16a34a;color:#fff;">🔧 Auto-Fix Health Issues</button>
         <div style="display:flex;gap:4px;flex-wrap:wrap;">
           <button data-qt="health" class="btn btn-small" style="flex:1;">Health</button>
           <button data-qt="privacy" class="btn btn-small" style="flex:1;">Privacy</button>
@@ -66,7 +67,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0))
   document.getElementById('qaInput')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') runQuickAction() })
   document.getElementById('intelAnalyze')?.addEventListener('click', async () => { await analyzeDoc(true); renderOverview(); renderSuggestions() })
   document.querySelectorAll('#tab-intel [data-qt]').forEach((b) => b.addEventListener('click', () => {
-    const map = { health: 'bx-health', privacy: 'bx-privacy', clean: 'bx-clean', summary: 'bx-summary', tables: 'bx-tables', academic: 'bx-academic', templates: 'bx-templates', recipes: 'bx-recipes', a11y: 'bx-a11y' }
+    const map = { autofix: 'bx-autofix', health: 'bx-health', privacy: 'bx-privacy', clean: 'bx-clean', summary: 'bx-summary', tables: 'bx-tables', academic: 'bx-academic', templates: 'bx-templates', recipes: 'bx-recipes', a11y: 'bx-a11y' }
     const fn = window.__bx && window.__bx[map[b.dataset.qt]]
     if (fn) fn(); else status('Loading…')
   }))
@@ -80,6 +81,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0))
       <button data-act="bx-qa">⌨ Quick Actions…</button>
       <button data-act="bx-smart">🔍 Smart Search…</button>
       <hr/><button data-act="bx-health">🩺 Health Check</button>
+      <button data-act="bx-autofix">🔧 Auto-Fix Health Issues</button>
       <button data-act="bx-clean">🧹 Clean PDF…</button>
       <button data-act="bx-privacy">🛡 Privacy Scanner</button>
       <button data-act="bx-redact-info">⬛ About True Redaction</button>
@@ -445,11 +447,19 @@ async function runHealth() {
   }
   const { score, items } = healthScore({ blanks, rotated, sizes, missingMeta, brokenLinks: badLinks, bigImages: heavy, dups, noText, scanned })
   const emoji = { ok: '✓', warn: '⚠', bad: '✗' }
-  const body = showInfo('PDF Health (local analysis)', `
+  const canFix = (blanks + dups + rotated + sizes + missingMeta) > 0
+  const summary = [blanks ? `${blanks} blank page(s)` : null, dups ? `${dups} duplicate page(s)` : null, rotated ? `${rotated} rotated page(s)` : null, sizes ? 'inconsistent page sizes' : null, missingMeta ? 'missing metadata' : null].filter(Boolean).join(', ') || 'nothing to fix'
+  const body = showInfo('🩺 PDF Health (local analysis)', `
     <div style="font-size:22px;text-align:center;">PDF HEALTH SCORE<br/><b>${score}/100</b></div>
     <div style="font-size:12px;line-height:2;">${items.map((i) => `${emoji[i.kind]} ${i.label}`).join('<br/>')}</div>
-    <div style="display:flex;gap:6px;"><button id="hlFix" class="btn btn-small" style="flex:1;">Fix Safe Issues (blanks${dups ? ' + duplicates' : ''})</button></div>
-    <small style="color:#94a3b8;">Safe fixes remove blank${dups ? '/duplicate' : ''} pages only (undoable). Links/images/sizes are report-only.</small>`)
+    <hr style="border-color:#334155;" />
+    <div style="font-size:12px;"><b>One-click auto-fix will:</b> ${summary}</div>
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <button id="hlAutoFix" class="btn btn-small btn-primary" style="flex:1;" ${canFix ? '' : 'disabled'}>🔧 Auto-Fix All Issues</button>
+      <button id="hlFix" class="btn btn-small" style="flex:1;">Fix Pages Only</button>
+    </div>
+    <small style="color:#94a3b8;">Auto-fix: removes blank/duplicate pages, straightens rotated pages, normalizes page sizes (enlarge-only, never crops), and fills missing metadata. Fully undoable. Links/heavy images stay report-only (use Compress for images).</small>`)
+  body.querySelector('#hlAutoFix').onclick = () => { document.getElementById('actionModal').classList.add('hidden'); autoFixHealth(d) }
   body.querySelector('#hlFix').onclick = async () => {
     document.getElementById('actionModal').classList.add('hidden')
     lastSnap = snapDoc()
@@ -468,6 +478,89 @@ async function runHealth() {
     order.forEach((o, ni) => { pos[o] = ni })
     await rebuild(order.map((o) => ({ doc: e.pdfLibDoc, index: o })), (old) => (drop.has(old) ? -1 : pos[old]), `Health fix: removed ${drop.size} page(s)`)
   }
+}
+
+// ================= ONE-CLICK AUTO-FIX (repairs everything safe) =================
+async function autoFixHealth(data) {
+  const e = E()
+  const d = data || await analyzeDoc(true)
+  if (!d) return
+  const { degrees } = e.libs
+  const t = taskBegin('Auto-fixing document health')
+  try {
+    lastSnap = snapDoc()
+    lastSnap.meta = { title: e.pdfLibDoc.getTitle(), author: e.pdfLibDoc.getAuthor(), subject: e.pdfLibDoc.getSubject(), creator: e.pdfLibDoc.getCreator() }
+    const done = []
+
+    // 1) straighten rotated pages
+    t.log('Checking page rotation…')
+    let rot = 0
+    for (const p of d.pages) {
+      try { const pg = e.pdfLibDoc.getPage(p.n - 1); if (pg.getRotation().angle % 360 !== 0) { pg.setRotation(degrees(0)); rot++ } } catch {}
+    }
+    if (rot) done.push(`straightened ${rot} rotated page(s)`)
+
+    // 2) normalize page sizes (enlarge-only so nothing is ever cropped)
+    t.log('Normalizing page sizes…')
+    const maxW = Math.max(...d.pages.map((p) => p.w)), maxH = Math.max(...d.pages.map((p) => p.h))
+    const uniqSizes = new Set(d.pages.map((p) => `${Math.round(p.w)}x${Math.round(p.h)}`))
+    let sized = 0
+    if (uniqSizes.size > 1) {
+      for (let i = 0; i < e.totalPages; i++) {
+        try { const pg = e.pdfLibDoc.getPage(i); const s = pg.getSize(); if (s.width < maxW - 1 || s.height < maxH - 1) { pg.setSize(Math.max(s.width, maxW), Math.max(s.height, maxH)); sized++ } } catch {}
+      }
+    }
+    if (sized) done.push(`normalized ${sized} page size(s) to ${Math.round(maxW)}×${Math.round(maxH)}`)
+
+    // 3) remove blank + duplicate pages via a single rebuild
+    t.log('Removing blank/duplicate pages…')
+    const drop = new Set()
+    d.pages.forEach((p) => { if (!p.text.trim() && !p.images) drop.add(p.n - 1) })
+    const seen = new Map()
+    d.pages.forEach((p) => {
+      const h = normHash(p.text)
+      if (h.length > 40) { if (seen.has(h)) drop.add(p.n - 1); else seen.set(h, 1) }
+    })
+    if (drop.size) {
+      const order = e.pdfLibDoc.getPageIndices().filter((i) => !drop.has(i))
+      if (order.length) {
+        const pos = {}
+        order.forEach((o, ni) => { pos[o] = ni })
+        await rebuild(order.map((o) => ({ doc: e.pdfLibDoc, index: o })), (old) => (drop.has(old) ? -1 : pos[old]), `Auto-fix: removed ${drop.size} page(s)`)
+        done.push(`removed ${drop.size} blank/duplicate page(s)`)
+      }
+    }
+
+    // 4) fill missing metadata (title from detected content, author = Otim Noah)
+    t.log('Filling metadata…')
+    try {
+      const dd = e.pdfLibDoc
+      if (!dd.getTitle()) { const ti = (d.titleAuthors && d.titleAuthors.title) || (window.__docName || 'Document').replace(/\.pdf$/i, ''); dd.setTitle(ti) }
+      if (!dd.getAuthor()) dd.setAuthor('Otim Noah')
+      dd.setProducer('BOTIM DOCSHUB by Otim Noah'); dd.setCreator('BOTIM DOCSHUB')
+      dd.setModificationDate(new Date())
+      done.push('filled missing metadata')
+    } catch {}
+
+    await e.renderAll(); e.renderPageList(); try { renderThumbs() } catch {}
+    analyzeDoc(true).then(() => { renderOverview(); renderSuggestions() }).catch(() => {})
+    t.done('Auto-fix complete: ' + (done.join(', ') || 'nothing needed fixing'))
+
+    // show result + undo
+    const { showInfo: si } = await import('./pro-core.js')
+    const box = si('✅ Auto-Fix Complete', `<div style="font-size:12px;line-height:1.9;">
+      ${done.length ? done.map((x) => '✓ ' + x).join('<br/>') : '✓ Document already healthy — nothing needed fixing.'}
+      <div style="margin-top:10px;"><button id="afUndo" class="btn btn-small">↩ Undo Auto-Fix</button> <button id="afSave" class="btn btn-small btn-primary">💾 Save Fixed PDF</button></div>
+      <small style="color:#94a3b8;">Then click Save to keep the repairs in the file.</small></div>`)
+    box.querySelector('#afUndo').onclick = async () => {
+      if (!lastSnap) return status('Nothing to undo')
+      await restoreSnap(lastSnap); lastSnap = null
+      try { if (lastSnap?.meta) { const dd = E().pdfLibDoc; dd.setTitle(lastSnap.meta.title || ''); dd.setAuthor(lastSnap.meta.author || '') } } catch {}
+      box.querySelector('#afUndo').textContent = 'Undone ✓'
+      status('Auto-fix undone')
+    }
+    box.querySelector('#afSave').onclick = () => { box.closest('.modal')?.classList.add('hidden'); e.saveBtn.click() }
+  } catch (err) { t.done('Auto-fix failed: ' + err.message) }
 }
 
 // ================= cleanup =================
@@ -1063,6 +1156,7 @@ window.__bx = {
   'bx-qa': () => { showIntel(); setTimeout(() => document.getElementById('qaInput')?.focus(), 50) },
   'bx-smart': smartSearchDlg,
   'bx-health': async () => { showIntel(); await runHealth() },
+  'bx-autofix': async () => { showIntel(); await autoFixHealth(null) },
   'bx-clean': async () => { showIntel(); await openCleanup() },
   'bx-privacy': async () => { showIntel(); await runPrivacy() },
   'bx-summary': async () => { showIntel(); await showSummary() },
