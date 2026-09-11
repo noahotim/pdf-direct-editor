@@ -306,16 +306,23 @@ async function opMerge() {
     status(`Merged ${files.length} files → merged.pdf (${e.totalPages} pages)`)
   }
 }
-function opDeleteChecked() {
+// Delete pages IMMEDIATELY (rebuilds the document right away, not on Save)
+async function deletePagesNow(indices) {
   const e = E()
   if (!e.pdfLibDoc) return status('Open a PDF first')
+  const drop = new Set(indices)
+  if (!drop.size) return status('No pages selected')
+  if (drop.size >= e.totalPages) return status('Cannot delete all pages — keep at least one')
+  const order = e.pdfLibDoc.getPageIndices().filter((i) => !drop.has(i))
+  const pos = {}
+  order.forEach((o, ni) => { pos[o] = ni })
+  await rebuild(order.map((o) => ({ doc: e.pdfLibDoc, index: o })), (old) => (drop.has(old) ? -1 : pos[old]), `Deleted ${drop.size} page${drop.size > 1 ? 's' : ''} — gone now (undo available)`)
+}
+window.bxDeletePagesNow = deletePagesNow
+function opDeleteChecked() {
   const picks = [...thumbSel].sort((a, b) => a - b)
   if (!picks.length) return status('Check pages in the thumbnails first (or use Pages → Delete panel)')
-  if (picks.length >= e.totalPages) return status('Cannot delete all pages — keep at least one')
-  e.pushUndo()
-  picks.forEach((i) => e.pagesToDelete.add(i))
-  e.renderPageList(); renderThumbs()
-  status(`${picks.length} page${picks.length > 1 ? 's' : ''} marked 🗑 — removed on Save`)
+  deletePagesNow(picks)
 }
 
 // wire tab buttons + menu actions

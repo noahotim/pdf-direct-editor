@@ -1,18 +1,66 @@
 // pro-lab: metadata, export/print/converters, compress, compare, batch, OCR, redaction, security info
 import { E, status, reg, openDialog, showInfo, downloadBlob, downloadBytes, pickFiles, taskBegin, setBar, parseRange } from './pro-core.js'
 
-// ---------- file info + metadata ----------
-async function fileInfo() {
+// ---------- extract metadata (view + copy, no editing) ----------
+async function extractMetadata() {
   const e = E()
   if (!e.pdfLibDoc) return status('Open a PDF first')
-  let perms = '—'
-  try { const p = await e.pdfDocProxy.getPermissions(); perms = JSON.stringify(p) } catch { /* ignore */ }
-  showInfo('File Information', `<div style="font-size:12px;line-height:2;">
-    <b>Name:</b> ${window.__docName || '—'}<br/><b>Pages:</b> ${e.totalPages}<br/>
-    <b>Size:</b> ${((e.originalBytes?.length || 0) / 1024).toFixed(1)} KB<br/>
-    <b>Title:</b> ${e.pdfLibDoc.getTitle() || '—'}<br/><b>Author:</b> ${e.pdfLibDoc.getAuthor() || '—'}<br/>
-    <b>Producer:</b> ${e.pdfLibDoc.getProducer() || '—'}<br/><b>Permissions:</b> <small>${perms}</small></div>`)
+  const d = e.pdfLibDoc
+  let perms = {}
+  try { perms = await e.pdfDocProxy.getPermissions() } catch { /* ignore */ }
+  let info = {}
+  try { const md = await e.pdfDocProxy.getMetadata(); info = md.info || {} } catch { /* ignore */ }
+  let xmp = ''
+  try { const md = await e.pdfDocProxy.getMetadata(); xmp = md.metadata ? (md.metadata.getRaw?.() || md.metadata.getAll?.() || '') : '' } catch { /* ignore */ }
+  let attach = []
+  try { attach = Object.keys((await e.pdfDocProxy.getAttachments()) || {}) } catch { /* ignore */ }
+  const sizes = []
+  try { for (let i = 0; i < e.totalPages; i++) { const s = d.getPage(i).getSize(); sizes.push(`${Math.round(s.width)}x${Math.round(s.height)}`) } } catch { /* ignore */ }
+  const uniqSizes = [...new Set(sizes)]
+  const meta = {
+    fileName: window.__docName || '—',
+    pages: e.totalPages,
+    fileSizeKB: +((e.originalBytes?.length || 0) / 1024).toFixed(1),
+    pageSizes: uniqSizes,
+    title: d.getTitle() || info.Title || '',
+    author: d.getAuthor() || info.Author || '',
+    subject: d.getSubject() || info.Subject || '',
+    keywords: (d.getKeywords && d.getKeywords()) || info.Keywords || '',
+    creator: d.getCreator() || info.Creator || '',
+    producer: d.getProducer() || info.Producer || '',
+    creationDate: info.CreationDate || '',
+    modificationDate: info.ModDate || '',
+    pdfVersion: info.PDFFormatVersion || '',
+    permissions: perms,
+    attachments: attach,
+    hasXMP: !!xmp,
+  }
+  const esc = (s) => String(s ?? '').replace(/</g, '&lt;')
+  const rows = [
+    ['File', meta.fileName], ['Pages', meta.pages], ['Size (KB)', meta.fileSizeKB],
+    ['Page sizes', uniqSizes.join(', ')],
+    ['Title', meta.title], ['Author', meta.author], ['Subject', meta.subject],
+    ['Keywords', meta.keywords], ['Creator', meta.creator], ['Producer', meta.producer],
+    ['Created', meta.creationDate], ['Modified', meta.modificationDate],
+    ['PDF version', meta.pdfVersion], ['Attachments', attach.join(', ') || 'none'],
+    ['XMP metadata', meta.hasXMP ? 'present' : 'none'],
+    ['Permissions', JSON.stringify(perms)],
+  ]
+  const body = showInfo('🏷️ Extracted Metadata', `<div style="font-size:12px;line-height:1.9;">
+    ${rows.map(([k, v]) => `<b>${k}:</b> ${esc(v === '' ? '—' : v)}`).join('<br/>')}
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+      <button id="mdCopyJson" class="btn btn-small">📋 Copy JSON</button>
+      <button id="mdCopyText" class="btn btn-small">📋 Copy Readable</button>
+      <button id="mdSave" class="btn btn-small">💾 Download .json</button>
+    </div></div>`)
+  const json = JSON.stringify(meta, null, 2)
+  const text = rows.map(([k, v]) => `${k}: ${v}`).join('\n')
+  const cp = async (t, msg) => { try { await navigator.clipboard.writeText(t); status(msg) } catch { status('Clipboard blocked — use Download instead') } }
+  body.querySelector('#mdCopyJson').onclick = () => cp(json, 'Metadata JSON copied')
+  body.querySelector('#mdCopyText').onclick = () => cp(text, 'Metadata copied')
+  body.querySelector('#mdSave').onclick = () => downloadBlob(new Blob([json], { type: 'application/json' }), ((window.__docName || 'document').replace(/\.pdf$/i, '')) + '-metadata.json')
 }
+async function fileInfo() { await extractMetadata() }
 async function metadataEditor() {
   const e = E()
   if (!e.pdfLibDoc) return status('Open a PDF first')
@@ -468,6 +516,7 @@ async function secInfo() {
 
 // ---- registrations ----
 reg('metadata', metadataEditor)
+reg('md-extract', extractMetadata)
 reg('expimg', exportImages)
 reg('exptext', exportText)
 reg('print', doPrint)

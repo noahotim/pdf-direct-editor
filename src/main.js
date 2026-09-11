@@ -59,7 +59,7 @@ document.querySelectorAll('.tool').forEach(b=>{
     b.classList.add('active')
     tool = b.dataset.tool
     setEraseCursor()
-    if(tool==='deleteWord') status('Erase mode: PRESS + DRAG over words to cover them white (or click for quick box)')
+    if(tool==='deleteWord') status('Erase: CLICK a word to delete it precisely, DOUBLE-CLICK the line, or DRAG an area')
     else if(tool==='replace') status('Replace mode: PRESS + DRAG over a word, then type the replacement')
     else status(`Tool: ${tool}`)
   })
@@ -136,13 +136,30 @@ const previewCoverBtn = document.getElementById('previewCoverBtn')
 async function handleCoverFile(file){
   if(!file) return
   try{
-    coverBytes = new Uint8Array(await file.arrayBuffer())
-    coverDoc = await PDFDocument.load(coverBytes)
+    const isImg = /^image\//.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name)
+    if(isImg){
+      // image cover (PNG/JPG/WEBP) → build a one-page PDF at image size
+      const dataUrl = await fileToDataUrl(file)
+      let bytes = await fetch(dataUrl).then(r=>r.arrayBuffer())
+      const nd = await PDFDocument.create()
+      let img
+      if(file.type==='image/png' || /\.png$/i.test(file.name)) img = await nd.embedPng(bytes)
+      else if(file.type==='image/jpeg' || /\.jpe?g$/i.test(file.name)) { try{ img = await nd.embedJpg(bytes) }catch{ img = await nd.embedPng(await rasterDataUrlToPngBytes(dataUrl)) } }
+      else img = await nd.embedPng(await rasterDataUrlToPngBytes(dataUrl))
+      const pg = nd.addPage([img.width, img.height])
+      pg.drawImage(img, { x:0, y:0, width: img.width, height: img.height })
+      coverBytes = await nd.save()
+      coverDoc = nd
+    } else {
+      coverBytes = new Uint8Array(await file.arrayBuffer())
+      coverDoc = await PDFDocument.load(coverBytes)
+    }
     coverFileName = file.name
     const n = coverDoc.getPageCount()
-    coverStatus.textContent = `✓ ${file.name} — ${n} page${n>1?'s':''} ready. Will merge on Save.`
+    coverStatus.textContent = `✓ ${file.name} — ${n} ${isImg?'image cover':'page'+(n>1?'s':'')} ready. Will merge on Save.`
     coverStatus.style.color='#22c55e'
-    status(`Cover imported: ${file.name} (${n} pages)`)
+    status(`Cover imported: ${file.name} (${isImg?'PNG/image':'PDF'}, ${n} page${n>1?'s':''})`)
+    try{ if(window.renderThumbs) window.renderThumbs() }catch{}
   }catch(e){ coverStatus.textContent='Failed: '+e.message; coverStatus.style.color='#ef4444' }
 }
 coverInput?.addEventListener('change', e=> handleCoverFile(e.target.files[0]))
@@ -237,6 +254,11 @@ async function renderAll(){
       else if(tool==='stamp'){ addNote(overlay, i-1, e.offsetX, e.offsetY) }
       else if(tool==='highlight'){ addHighlight(overlay, i-1, e.offsetX, e.offsetY) }
       else if(tool==='deleteWord' || tool==='replace'){ handleOverlayClick(overlay, i-1, e) }
+    })
+    // double-click = erase the WHOLE line (precise, text-aware)
+    overlay.addEventListener('dblclick', async (e)=>{
+      if(e.target!==overlay && e.target!==drawCanvas) return
+      if(tool==='deleteWord'){ e.preventDefault(); await eraseWordAt(overlay, i-1, e.offsetX, e.offsetY, true) }
     })
 
     await page.render({ canvasContext: ctx, viewport }).promise
@@ -676,7 +698,13 @@ function renderPageList(){
 }
 document.getElementById('deletePagesBtn')?.addEventListener('click', ()=>{
   if(pagesToDelete.size===0) return status('No pages selected')
-  status(`${pagesToDelete.size} page(s) will be deleted on Save`)
+  if(window.bxDeletePagesNow){
+    const picks=[...pagesToDelete]
+    pagesToDelete.clear(); renderPageList()
+    window.bxDeletePagesNow(picks)
+  } else {
+    status(`${pagesToDelete.size} page(s) will be deleted on Save`)
+  }
 })
 document.getElementById('restorePagesBtn')?.addEventListener('click', ()=>{
   pagesToDelete.clear()
@@ -685,15 +713,53 @@ document.getElementById('restorePagesBtn')?.addEventListener('click', ()=>{
   status('All pages restored')
 })
 
-// Delete word / replace handling — drag to cover words with opaque white
+// Delete word / replace handling — click a word to erase it precisely, or drag an area
 let pendingReplace = null
-function addDeleteRect(overlay, pageIndex, x, y, w=120, h=18){
+function addDeleteRect(overlay, pageIndex, x, y, w=120, h=18, meta){
   const id=Date.now()+Math.random()
-  const ed={id, pageIndex, type:'deleteWord', x: Math.max(0,Math.round(x)), y: Math.max(0,Math.round(y)), w: Math.max(12,Math.round(w)), h: Math.max(10,Math.round(h))}
+  const ed={id, pageIndex, type:'deleteWord', x: Math.max(0,Math.round(x)), y: Math.max(0,Math.round(y)), w: Math.max(8,Math.round(w)), h: Math.max(8,Math.round(h))}
+  if(meta && meta.text) ed.text = meta.text
   pushUndo()
   edits.push(ed); createDeleteEl(overlay, ed)
   const n = edits.filter(e=>e.type==='deleteWord').length
-  status(`Deleted block #${n} on page ${pageIndex+1} — looks deleted now, stays deleted on Save.`)
+  status(meta && meta.text ? `Erased "${meta.text.slice(0,40)}" on page ${pageIndex+1} — saved as opaque white.` : `Deleted block #${n} on page ${pageIndex+1} — looks deleted now, stays deleted on Save.`)
+}
+// Detect the actual word/line under a click and erase exactly it (precise word deletion)
+async function eraseWordAt(overlay, pageIndex, x, y, wholeLine){
+  try{
+    const page = await pdfDocProxy.getPage(pageIndex+1)
+    const vp = page.getViewport({ scale: currentZoom })
+    const U = pdfjsLib.Util
+    const tc = await page.getTextContent()
+    let hit=null
+    for(const it of (tc.items||[])){
+      if(!it.str || !it.str.trim()) continue
+      const tx = U.transform(vp.transform, it.transform)
+      const fs = Math.hypot(tx[2], tx[3]) || 10
+      const w = (it.width || it.str.length*fs*0.5)
+      const h = fs*1.2
+      const ix = tx[4], iy = tx[5]-h*0.85
+      if(x>=ix-2 && x<=ix+w+2 && y>=iy-2 && y<=iy+h+2){ hit={it, ix, iy, w, h, fs, lineY: tx[5]}; break }
+    }
+    if(!hit){ return false }
+    if(wholeLine){
+      // cover the whole line: find all items on the same baseline
+      let minX=hit.ix, maxX=hit.ix+hit.w, h=hit.h
+      for(const it of (tc.items||[])){
+        if(!it.str || !it.str.trim()) continue
+        const tx=U.transform(vp.transform, it.transform)
+        if(Math.abs(tx[5]-hit.lineY) < hit.fs*0.6){
+          const fs=Math.hypot(tx[2],tx[3])||10
+          const ix=tx[4], w=(it.width||it.str.length*fs*0.5), iy=tx[5]-fs*1.2*0.85
+          minX=Math.min(minX,ix); maxX=Math.max(maxX,ix+w); h=Math.max(h,fs*1.2); hit.iy=Math.min(hit.iy,iy)
+        }
+      }
+      addDeleteRect(overlay, pageIndex, minX-2, hit.iy-2, (maxX-minX)+4, h+4, {text:'line'})
+    } else {
+      addDeleteRect(overlay, pageIndex, hit.ix-2, hit.iy-2, hit.w+4, hit.h+4, {text:hit.it.str})
+    }
+    return true
+  }catch(e){ return false }
 }
 function createDeleteEl(overlay, ed){
   const el=document.createElement('div')
@@ -758,7 +824,7 @@ function setEraseCursor(){
 document.getElementById('deleteWordBtn')?.addEventListener('click', ()=>{
   tool='deleteWord'; document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active')); document.querySelector('[data-tool="deleteWord"]')?.classList.add('active')
   setEraseCursor()
-  status('Erase mode: PRESS + DRAG over words to cover them white (or click for quick box)')
+  status('Erase: CLICK a word to delete it precisely, DOUBLE-CLICK the line, or DRAG an area')
 })
 document.getElementById('replaceWordBtn')?.addEventListener('click', ()=>{
   tool='replace'; document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active')); document.querySelector('[data-tool="replace"]')?.classList.add('active')
@@ -813,7 +879,9 @@ async function doReplace(overlay, pageIndex, rx, ry, rw, rh){
 // extend overlay click for delete/replace - will be added in renderAll via function
 async function handleOverlayClick(overlay, pageIndex, e){
   if(tool==='deleteWord'){
-    addDeleteRect(overlay, pageIndex, e.offsetX-50, e.offsetY-9)
+    // precise: detect the word under the cursor and erase exactly it
+    const ok = await eraseWordAt(overlay, pageIndex, e.offsetX, e.offsetY, false)
+    if(!ok) addDeleteRect(overlay, pageIndex, e.offsetX-50, e.offsetY-9)  // fallback for images/scans
   } else if(tool==='replace'){
     const rx=e.offsetX-60, ry=e.offsetY-9
     await doReplace(overlay, pageIndex, rx, ry, 120, 18)

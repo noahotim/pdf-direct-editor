@@ -5,22 +5,44 @@
 // OCR in this app uses Tesseract.js (Apache-2.0) — also free/open-source.
 import { E, status, showInfo } from './pro-core.js'
 
-const CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2'
+const CDNS = [
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2',
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/+esm',
+  'https://unpkg.com/@xenova/transformers@2.17.2/dist/transformers.min.js',
+]
 let tfLib = null
 let embedder = null
 let aiIndex = null // { proxy, chunks:[{text,page,vec}] }
 
 async function loadEngine(onLog) {
   if (embedder) return embedder
-  onLog && onLog('Loading transformers.js (open-source)…')
-  tfLib = await import(/* @vite-ignore */ CDN)
+  let lastErr = null
+  for (const cdn of CDNS) {
+    try {
+      onLog && onLog('Loading transformers.js from ' + cdn.split('/')[2] + ' …')
+      tfLib = await import(/* @vite-ignore */ cdn)
+      if (tfLib && (tfLib.pipeline || tfLib.default?.pipeline)) { if (!tfLib.pipeline) tfLib = tfLib.default; break }
+    } catch (e) { lastErr = e; tfLib = null }
+  }
+  if (!tfLib) throw new Error('Could not load the open-source AI engine (need internet once): ' + (lastErr && lastErr.message))
   const { pipeline, env } = tfLib
   env.allowLocalModels = false
   env.useBrowserCache = true
+  if (env.backends && env.backends.onnx && env.backends.onnx.wasm) env.backends.onnx.wasm.numThreads = 1
   onLog && onLog('Downloading model all-MiniLM-L6-v2 (~23 MB, once)…')
-  embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', { quantized: true })
-  onLog && onLog('Model ready — running locally offline from now on.')
+  embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+    quantized: true,
+    progress_callback: (p) => { if (p && p.status === 'progress' && p.progress) onLog && onLog(`model download ${Math.round(p.progress)}%`) }
+  })
+  onLog && onLog('Model ready — runs locally & offline from now on.')
   return embedder
+}
+// preload button: download the model once while online
+async function preloadModel() {
+  const { taskBegin } = await import('./pro-core.js')
+  const t = taskBegin('Preloading local AI model')
+  try { await loadEngine((m) => t.log(m)); await embedder('warmup', { pooling: 'mean', normalize: true }); t.done('Local AI ready — works offline now') }
+  catch (e) { t.done('Preload failed: ' + e.message) }
 }
 function cos(a, b) {
   let d = 0, na = 0, nb = 0
@@ -156,12 +178,14 @@ function setupAI() {
       <button id="aiSearch" class="btn btn-small" style="background:#7c3aed;color:#fff;">🔍 AI Semantic Search…</button>
       <button id="aiAsk" class="btn btn-small" style="background:#9333ea;color:#fff;">💬 Ask Document…</button>
       <button id="aiTopics" class="btn btn-small" style="background:#a855f7;color:#fff;">🗂 Topic Clusters…</button>
+      <button id="aiPreload" class="btn btn-small">⬇️ Preload AI model (once)</button>
       <button id="aiOcr" class="btn btn-small">🔎 OCR Page (Tesseract.js)</button>`
     tab.appendChild(div)
   }
   document.getElementById('aiSearch')?.addEventListener('click', semanticSearch)
   document.getElementById('aiAsk')?.addEventListener('click', askDoc)
   document.getElementById('aiTopics')?.addEventListener('click', topicClusters)
+  document.getElementById('aiPreload')?.addEventListener('click', preloadModel)
   document.getElementById('aiOcr')?.addEventListener('click', () => document.querySelector('#menubar [data-act="ocr"]')?.click())
   // menu entries
   const menu = document.querySelector('#menubar [data-menu="intel"] .menu-drop')
@@ -173,4 +197,4 @@ function setupAI() {
 }
 ;(() => { const t = document.getElementById('tab-intel'); if (t) setupAI(); else new MutationObserver(() => { if (document.getElementById('tab-intel')) { setupAI(); } }).observe(document.getElementById('sidebar'), { childList: true }) })()
 
-export { semanticSearch, askDoc, topicClusters, buildIndex, loadEngine }
+export { semanticSearch, askDoc, topicClusters, buildIndex, loadEngine, preloadModel }

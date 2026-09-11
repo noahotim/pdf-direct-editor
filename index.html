@@ -71,7 +71,8 @@
       <hr/><button data-act="red-mark">⬛ Mark Redaction Area</button>
       <button data-act="red-search">🔍 Search &amp; Mark Redactions…</button>
       <button data-act="red-apply">⬛ Apply Redactions…</button>
-      <hr/><button data-act="metadata">🏷️ Document Metadata…</button>
+      <hr/><button data-act="md-extract">🏷️ Extract Metadata…</button>
+      <button data-act="metadata">🏷️ Edit Document Metadata…</button>
       <button data-act="flatten">🧊 Flatten (burn fields)…</button>
       <hr/><button data-act="erase">🧽 Erase Words</button>
       <button data-act="replace">🔄 Replace (text/image)…</button>
@@ -113,8 +114,8 @@
         📂 Open PDF
       </label>
       <label class="btn btn-secondary" style="background:#1e3a5f;border-color:#38bdf8;">
-        <input type="file" id="coverInput" accept=".pdf" hidden />
-        📑 Import Cover
+        <input type="file" id="coverInput" accept=".pdf,image/png,image/jpeg,image/webp,image/*" hidden />
+        📑 Import Cover (PDF/PNG)
       </label>
       <button id="saveBtn" class="btn btn-primary" disabled>💾 Save as PDF</button>
       <button id="themeToggle" class="btn btn-ghost" title="Toggle dark / light theme">🌗 Theme</button>
@@ -141,8 +142,8 @@
         <button class="tool" data-tool="stamp" title="Stamp/Annotation">📌 Note</button>
         <button class="tool" data-tool="signature" title="Signature">✍️ Sign</button>
         <button class="tool" data-tool="form" title="Form Fields">📋 Form</button>
-        <button class="tool" data-tool="deleteWord" title="Delete/White-out Words">🧽 Erase Words</button>
-        <button class="tool" data-tool="replace" title="Replace Words (Erase + Type)">🔄 Replace Word</button>
+        <button class="tool" data-tool="deleteWord" title="Click a word to erase it; double-click the line; or drag an area">🧽 Erase Words (click/drag)</button>
+        <button class="tool" data-tool="replace" title="Erase a word then type a replacement">🔄 Replace Word</button>
       </div>
 
       <!-- WORD-LIKE RIBBON -->
@@ -241,7 +242,7 @@
         <h4>📑 Cover Page</h4>
         <div id="coverStatus" class="form-list" style="font-size:11px;">No cover imported</div>
         <label class="btn btn-small" style="background:#0ea5e9;color:white;">
-          Import Cover PDF <input type="file" id="coverInput2" accept=".pdf" hidden />
+          Import Cover (PDF or PNG/JPG) <input type="file" id="coverInput2" accept=".pdf,image/png,image/jpeg,image/webp,image/*" hidden />
         </label>
         <label style="font-size:11px;display:flex;align-items:center;gap:6px;margin-top:6px;"><input type="checkbox" id="mergeCoverCheck" checked /> Merge as first page on Save</label>
         <label style="font-size:11px;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="coverAllPagesCheck" /> Merge all cover pages (else first only)</label>
@@ -256,7 +257,7 @@
 
       <div class="info">
         <small>💡 All edits save <b>directly to PDF</b> — no Word conversion. Works offline. Installable on any PC.</small>
-        <small style="display:block;margin-top:6px;color:#38bdf8;">Developed by <b>Otim Noah</b> • BOTIM DOCSHUB v1.5.0 — PDF • Word • PowerPoint</small>
+        <small style="display:block;margin-top:6px;color:#38bdf8;">Developed by <b>Otim Noah</b> • BOTIM DOCSHUB v1.6.0 — PDF • Word • PowerPoint</small>
       </div>
       </div><!-- /tab-tools -->
       <div id="tab-pages" class="hidden">
