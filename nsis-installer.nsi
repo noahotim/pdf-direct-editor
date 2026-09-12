@@ -1,39 +1,47 @@
-; BOTIM DOCSHUB by Otim Noah - Installer (PDF â€¢ Word â€¢ PowerPoint)
+; BOTIM DOCSHUB by Otim Noah - Installer (per-user, seamless updates)
+; Per-user install => no admin prompt => updates can install silently & relaunch.
 !define PRODUCT_NAME "BOTIM DOCSHUB"
-!define PRODUCT_VERSION "1.8.0"
+!define PRODUCT_VERSION "1.8.1"
 !define PRODUCT_PUBLISHER "Otim Noah"
 !define PRODUCT_WEB_SITE "https://github.com/noahotim/pdf-direct-editor"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\BOTIM-DOCSHUB.exe"
+!define PRODUCT_EXE "BOTIM-DOCSHUB.exe"
+!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_EXE}"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
-!define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
 SetCompressor zlib
-RequestExecutionLevel admin
+RequestExecutionLevel user
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "release\BOTIM-DOCSHUB-Setup-1.8.0.exe"
-InstallDir "$PROGRAMFILES\BOTIM DOCSHUB"
-InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
+OutFile "release\BOTIM-DOCSHUB-Setup-1.8.1.exe"
+InstallDir "$LOCALAPPDATA\Programs\BOTIM DOCSHUB"
+InstallDirRegKey HKCU "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
 
-VIProductVersion "1.8.0.0"
+VIProductVersion "1.8.1.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "CompanyName" "Otim Noah"
-VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Otim Noah â€” BOTIM DOCSHUB"
-VIAddVersionKey "FileDescription" "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint Editor & Converter"
-VIAddVersionKey "FileVersion" "1.8.0"
-VIAddVersionKey "ProductVersion" "1.8.0"
+VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Otim Noah — BOTIM DOCSHUB"
+VIAddVersionKey "FileDescription" "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint Editor, Converter & AI"
+VIAddVersionKey "FileVersion" "1.8.1"
+VIAddVersionKey "ProductVersion" "1.8.1"
 
 Icon "public\icon.ico"
 
+; Silent-update helper: when run with /S the app is closed first by the updater,
+; but wait briefly to be safe against file locks.
+!macro WaitForUnlock
+  Sleep 1500
+!macroend
+
 Section "MainSection" SEC01
+  !insertmacro WaitForUnlock
   SetOutPath "$INSTDIR"
-  SetOverwrite try
+  SetOverwrite on
   File /r "release\BOTIM-DOCSHUB-win32-x64\*.*"
   CreateDirectory "$SMPROGRAMS\BOTIM DOCSHUB"
-  CreateShortCut "$SMPROGRAMS\BOTIM DOCSHUB\BOTIM DOCSHUB.lnk" "$INSTDIR\BOTIM-DOCSHUB.exe" "" "$INSTDIR\BOTIM-DOCSHUB.exe" 0
-  CreateShortCut "$DESKTOP\BOTIM DOCSHUB.lnk" "$INSTDIR\BOTIM-DOCSHUB.exe" "" "$INSTDIR\BOTIM-DOCSHUB.exe" 0
+  CreateShortCut "$SMPROGRAMS\BOTIM DOCSHUB\BOTIM DOCSHUB.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\${PRODUCT_EXE}" 0
+  CreateShortCut "$DESKTOP\BOTIM DOCSHUB.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\${PRODUCT_EXE}" 0
 SectionEnd
 
 Section -AdditionalIcons
@@ -44,13 +52,15 @@ SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\BOTIM-DOCSHUB.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\BOTIM-DOCSHUB.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  WriteRegStr HKCU "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${PRODUCT_EXE}"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\${PRODUCT_EXE}"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  ; relaunch the app so an update applies seamlessly (no manual step)
+  Exec '"$INSTDIR\${PRODUCT_EXE}"'
 SectionEnd
 
 Section Uninstall
@@ -62,8 +72,7 @@ Section Uninstall
   Delete "$DESKTOP\BOTIM DOCSHUB.lnk"
   Delete "$SMPROGRAMS\BOTIM DOCSHUB\BOTIM DOCSHUB.lnk"
   RMDir "$SMPROGRAMS\BOTIM DOCSHUB"
-  DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
-  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+  DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
+  DeleteRegKey HKCU "${PRODUCT_DIR_REGKEY}"
   SetAutoClose true
 SectionEnd
-

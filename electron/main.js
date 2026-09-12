@@ -89,8 +89,8 @@ function setupUpdater(){
   ipcMain.handle('botim:download', async (event, url) => {
     try {
       if (!url || !/^https?:\/\//i.test(url)) return { ok:false, error:'No valid download URL (version.json missing url)' }
-      // Save into the user's real Downloads folder so it is a normal, visible download
-      let dir = app.getPath('downloads')
+      // Download into the app's own update cache (like opencode) — not the user's Downloads folder
+      let dir = path.join(app.getPath('userData'), 'update')
       try { fs.mkdirSync(dir, { recursive: true }) } catch { dir = os.tmpdir() }
       const clean = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe')
       const file = path.join(dir, clean.toLowerCase().endsWith('.exe') ? clean : 'BOTIM-DOCSHUB-Setup.exe')
@@ -123,13 +123,15 @@ function setupUpdater(){
     } catch (e) { return { ok:false, error:String(e && e.message || e) } }
   })
 
-  // Run the downloaded installer silently and quit so it can replace files.
+  // Run the downloaded installer silently, then exit so files unlock.
+  // The installer (per-user, no UAC) replaces files and relaunches the app itself.
   ipcMain.handle('botim:install', async () => {
     try {
       if (!installerPath || !fs.existsSync(installerPath)) return { ok:false, error:'No downloaded installer found' }
       const child = spawn(installerPath, ['/S'], { detached:true, stdio:'ignore' })
       child.unref()
-      setTimeout(() => { app.quit() }, 1000)
+      // give the installer a moment, then force-exit so the .exe is unlocked
+      setTimeout(() => { try { app.exit(0) } catch { app.quit() } }, 1200)
       return { ok:true }
     } catch (e) { return { ok:false, error:String(e && e.message || e) } }
   })
