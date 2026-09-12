@@ -197,4 +197,22 @@ function setupAI() {
 }
 ;(() => { const t = document.getElementById('tab-intel'); if (t) setupAI(); else new MutationObserver(() => { if (document.getElementById('tab-intel')) { setupAI(); } }).observe(document.getElementById('sidebar'), { childList: true }) })()
 
-export { semanticSearch, askDoc, topicClusters, buildIndex, loadEngine, preloadModel }
+// reusable: return the top-k most relevant passages for a query (for RAG / AI chat)
+async function semanticTopK(q, k = 4, onLog) {
+  await loadEngine(onLog)
+  const idx = await buildIndex(onLog)
+  const qv = await embed(q)
+  return idx.chunks.map((c) => ({ ...c, score: cos(qv, c.vec) })).sort((a, b) => b.score - a.score).slice(0, k)
+}
+async function docFullText() {
+  const e = E()
+  if (!e.pdfDocProxy) return ''
+  let out = ''
+  for (let i = 1; i <= e.totalPages; i++) {
+    const tc = await (await e.pdfDocProxy.getPage(i)).getTextContent()
+    out += (tc.items || []).map((it) => it.str || '').join(' ') + '\n'
+  }
+  return out
+}
+
+export { semanticSearch, askDoc, topicClusters, buildIndex, loadEngine, preloadModel, semanticTopK, docFullText }

@@ -1,9 +1,9 @@
 {
-  "version": "1.7.1",
+  "version": "1.8.0",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.7.1/BOTIM-DOCSHUB-Setup-1.7.1.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.7.1/BOTIM-DOCSHUB-Portable-1.7.1.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.0/BOTIM-DOCSHUB-Setup-1.8.0.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.0/BOTIM-DOCSHUB-Portable-1.8.0.zip",
   "released": "2026-09-11",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.7.1 - download button now always fetches the real .exe directly (never a page, never local storage); installer saves to your Downloads folder; Docs Studio (Word/PPT create+edit+save); fully automatic updates"
+  "notes": "BOTIM DOCSHUB 1.8.0 - on-device AI Assistant (open-source Llama 3.2 / Phi-3.5 / Gemma 2 via WebLLM, transformers.js fallback), chat about your document with page citations (RAG), writing tools (fix grammar, rewrite, professional, simplify, shorten, key points, summarise, translate), Docs Studio (Word/PPT), automatic updates"
 }

@@ -9,6 +9,13 @@ import { spawn } from 'child_process'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = !app.isPackaged
 
+// Enable WebGPU so the on-device AI models (Llama/Phi via WebLLM) can run locally.
+try {
+  app.commandLine.appendSwitch('enable-unsafe-webgpu')
+  app.commandLine.appendSwitch('enable-features', 'Vulkan,WebGPU,SharedArrayBuffer')
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader')
+} catch { /* older electron */ }
+
 function createServer(root, port=0){
   return new Promise((resolve, reject)=>{
     const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.png':'image/png','.svg':'image/svg+xml','.woff':'font/woff','.woff2':'font/woff2'}
