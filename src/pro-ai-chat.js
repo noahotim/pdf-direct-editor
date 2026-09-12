@@ -11,12 +11,21 @@ const state = {
   messages: [],           // chat history [{role, content}]
   ready: false,
 }
+// All models below are FREE and OPEN-SOURCE, and run 100% on your device (WebGPU).
 const WEBLLM_MODELS = [
-  { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 1B (fast, ~0.7 GB)' },
-  { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 3B (balanced, ~2 GB)' },
-  { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Microsoft Phi-3.5 mini (strong, ~2.2 GB)' },
+  { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Meta Llama 3.2 1B — fast (~0.7 GB)' },
+  { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC', label: 'Meta Llama 3.2 3B — balanced (~2 GB)' },
+  { id: 'Llama-3.1-8B-Instruct-q4f16_1-MLC', label: 'Meta Llama 3.1 8B — strongest (~4.5 GB)' },
+  { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC', label: 'Microsoft Phi-3.5 mini — strong (~2.2 GB)' },
   { id: 'gemma-2-2b-it-q4f16_1-MLC', label: 'Google Gemma 2 2B (~1.4 GB)' },
+  { id: 'gemma-2-9b-it-q4f16_1-MLC', label: 'Google Gemma 2 9B (~5 GB)' },
   { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Qwen 2.5 1.5B (~0.9 GB)' },
+  { id: 'Qwen2.5-7B-Instruct-q4f16_1-MLC', label: 'Qwen 2.5 7B (~4 GB)' },
+  { id: 'Mistral-7B-Instruct-v0.3-q4f16_1-MLC', label: 'Mistral 7B Instruct v0.3 (~4 GB)' },
+  { id: 'DeepSeek-R1-Distill-Qwen-7B-q4f16_1-MLC', label: 'DeepSeek-R1 Distill 7B — reasoning (~4.5 GB)' },
+  { id: 'DeepSeek-R1-Distill-Qwen-1.5B-q4f16_1-MLC', label: 'DeepSeek-R1 Distill 1.5B (~1 GB)' },
+  { id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC', label: 'HuggingFace SmolLM2 1.7B — small (~1 GB)' },
+  { id: 'Hermes-2-Pro-Llama-3-8B-q4f16_1-MLC', label: 'Nous Hermes-2 Pro Llama-3 8B (~4.5 GB)' },
 ]
 
 // ---------- engines ----------
@@ -118,12 +127,14 @@ function setupAITab() {
   tab.innerHTML = `
     <h3>AI Assistant <span style="color:#a855f7;font-size:11px;">local • free</span></h3>
     <div class="tool-group" style="border-color:#a855f7;">
-      <h4>Model</h4>
+      <h4>Model (free &amp; open-source, runs on your device)</h4>
       <select id="aiModel" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;">
         ${WEBLLM_MODELS.map((m) => `<option value="${m.id}">${m.label}</option>`).join('')}
       </select>
+      <label style="font-size:11px;color:#94a3b8;">Custom model ID (advanced — any WebLLM/MLC model id)</label>
+      <input id="aiCustomModel" placeholder="e.g. Llama-3.2-1B-Instruct-q4f16_1-MLC" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;" />
       <button id="aiLoad" class="btn btn-small" style="background:#a855f7;color:#fff;">⬇️ Load AI model (once)</button>
-      <small id="aiEngineInfo" style="color:#94a3b8;font-size:10px;">Runs on your device. Downloads once, then works offline.</small>
+      <small id="aiEngineInfo" style="color:#94a3b8;font-size:10px;">Runs on your device. Downloads once, then works offline. No paid API, no keys.</small>
     </div>
     <div class="tool-group"><h4>💬 Chat about your document</h4>
       <div id="aiMessages" style="max-height:38vh;overflow:auto;background:#0b1220;border:1px solid #1e293b;border-radius:8px;padding:8px;"><div style="color:#64748b;font-size:12px;">Load the model, then ask anything — answers cite your PDF pages.</div></div>
@@ -151,7 +162,8 @@ function setupAITab() {
       <div style="display:flex;gap:4px;margin-top:4px;"><button id="aiCopyOut" class="btn btn-small" style="flex:1;">📋 Copy result</button><button id="aiUseOut" class="btn btn-small" style="flex:1;">↪ Put back in box</button></div>
     </div>`
   el('aiLoad').onclick = async () => {
-    state.model = el('aiModel').value
+    state.model = (el('aiCustomModel').value.trim() || el('aiModel').value)
+    state.ready = false; state.engine = null   // reload when the model changes
     const t = taskBegin('Loading on-device AI')
     try { await loadLLM((m) => t.log(m)); el('aiEngineInfo').textContent = '✓ Ready (' + (state.kind === 'webllm' ? 'WebLLM / WebGPU' : 'transformers.js / WASM') + ') — works offline now'; t.done('AI ready') }
     catch (e) { t.done('AI load failed: ' + e.message) }
