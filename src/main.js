@@ -190,7 +190,9 @@ async function openAnyFile(file){
   if(n.endsWith('.pdf')) return loadPdf(file)
   if(n.endsWith('.docx')){ const m=await import('./pro-docs.js'); await m.openWord(file); document.querySelector('.side-tab[data-tab="docs"]')?.click(); return }
   if(n.endsWith('.pptx')){ const m=await import('./pro-docs.js'); await m.openPpt(file); document.querySelector('.side-tab[data-tab="docs"]')?.click(); return }
-  if(n.endsWith('.txt')||n.endsWith('.md')||n.endsWith('.csv')){ const t=await file.text(); const m=await import('./pro-docs.js'); const c=document.getElementById('docWordCanvas'); if(c){ c.innerHTML=`<pre style="white-space:pre-wrap;font-family:monospace;">${t.replace(/</g,'&lt;')}</pre>`; document.querySelector('.side-tab[data-tab="docs"]')?.click(); status(`Opened text file ${file.name} — edit then Save as Word/PDF`) } return }
+  if(n.endsWith('.txt')||n.endsWith('.md')){ const t=await file.text(); const m=await import('./pro-docs.js'); const c=document.getElementById('docWordCanvas'); if(c){ c.innerHTML=`<div class="doc-page" contenteditable="true"><div class="doc-page-label" contenteditable="false">Page 1</div><pre style="white-space:pre-wrap;font-family:monospace;">${t.replace(/</g,'&lt;')}</pre></div>`; if(m.renumberWordPages) m.renumberWordPages(); document.querySelector('.side-tab[data-tab="docs"]')?.click(); status(`Opened text file ${file.name} — edit then Save as Word/PDF`) } return }
+  if(n.endsWith('.csv')){ const t=await file.text(); const m=await import('./pro-sheets.js'); document.querySelector('.side-tab[data-tab="sheets"]')?.click(); const s=document.querySelector('#sheetOpen'); if(s){ const dt=new DataTransfer(); dt.items.add(file); s.files=dt.files; s.dispatchEvent(new Event('change')) } return }
+  if(n.endsWith('.xlsx')||n.endsWith('.xls')){ const m=await import('./pro-sheets.js'); await m.openExcel(file); document.querySelector('.side-tab[data-tab="sheets"]')?.click(); return }
   if(/^image\//.test(file.type) || /\.(png|jpe?g|webp|bmp|gif)$/i.test(n)){
     const url=URL.createObjectURL(file); const img=new Image(); img.src=url; await img.decode().catch(()=>{})
     const ov=document.querySelector('.overlay')||document.getElementById('pdfContainer')
@@ -208,7 +210,7 @@ async function openAnyFile(file){
     }
     return
   }
-  status(`Unsupported file type: ${file.name} — try PDF, Word, PowerPoint, text or image`)
+  status(`Unsupported file type: ${file.name} — try PDF, Word, PowerPoint, Excel, text or image`)
 }
 fileInput.addEventListener('change', e=>{ if(e.target.files[0]) openAnyFile(e.target.files[0]); e.target.value='' })
 viewer.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag') })

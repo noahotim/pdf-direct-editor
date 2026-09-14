@@ -1,6 +1,6 @@
 {
   "name": "botim-pdf-editor",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "description": "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint editor & converter - edit, convert, merge without disorganising layout.",
   "author": "Otim Noah <otim.noah@example.com>",
   "repository": {
@@ -24,7 +24,8 @@
     "mammoth": "^1.12.2",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.4.168",
-    "pptxgenjs": "^4.0.1"
+    "pptxgenjs": "^4.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -37,7 +38,7 @@
   "build": {
     "appId": "com.botim.docshub",
     "productName": "BOTIM DOCSHUB",
-    "copyright": "Copyright \u00c2\u00a9 2026 Otim Noah \u00e2\u20ac\u201d BOTIM DOCSHUB",
+    "copyright": "Copyright Â© 2026 Otim Noah â€” BOTIM DOCSHUB",
     "publish": [
       {
         "provider": "github",

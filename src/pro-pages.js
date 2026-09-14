@@ -277,34 +277,132 @@ async function opSplit() {
   }
   status(`Split into ${groups.length} file${groups.length > 1 ? 's' : ''}`)
 }
+// Merge PDFs into one with an office-style list: add files, reorder, choose page ranges, insert at position.
 async function opMerge() {
-  const files = await pickFiles('.pdf', true)
-  if (!files.length) return
-  if (files.length < 2 && !E().pdfLibDoc) return status('Pick at least 2 PDFs (or open one first to append)')
   const e = E()
-  const { PDFDocument } = e.libs
-  const docs = []
-  for (const f of files) docs.push(await PDFDocument.load(new Uint8Array(await f.arrayBuffer())))
-  const r = await openDialog('Merge PDFs', [
-    { key: 'mode', label: 'Merge into', type: 'select', value: e.pdfLibDoc ? 'append' : 'new', options: e.pdfLibDoc ? ['Append to current document', 'New document from files'] : ['New document from files'] }
-  ], 'Merge')
-  if (!r) return
-  if (r.mode.startsWith('Append')) {
-    const doc = e.pdfLibDoc
-    const order = doc.getPageIndices()
-    const sources = order.map((o) => ({ doc, index: o }))
-    docs.forEach((d) => d.getPageIndices().forEach((i) => sources.push({ doc: d, index: i })))
-    const pos = {}
-    order.forEach((o, ni) => { pos[o] = ni })
-    await rebuild(sources, (old) => pos[old], `Merged ${files.length} file${files.length > 1 ? 's' : ''} appended`)
-  } else {
-    const nd = await PDFDocument.create()
-    for (const d of docs) (await nd.copyPages(d, d.getPageIndices())).forEach((p) => nd.addPage(p))
-    window.__docName = 'merged.pdf'
-    await e.reloadFromBytes(await nd.save())
-    renderThumbs()
-    status(`Merged ${files.length} files → merged.pdf (${e.totalPages} pages)`)
+  const inFile = (name) => name.toLowerCase().endsWith('.pdf')
+  const srcs = [] // {doc, name, pages:[indices]}
+  const add = async (file) => {
+    const { PDFDocument } = e.libs
+    try {
+      const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()))
+      srcs.push({ doc, name: file.name, pages: doc.getPageIndices() })
+    } catch (err) { status('Could not read ' + file.name + ': ' + err.message) }
   }
+  // open a custom modal with a live reorderable list
+  const m = document.getElementById('actionModal')
+  document.getElementById('actionTitle').textContent = 'Merge PDFs'
+  const body = document.getElementById('actionBody')
+  body.innerHTML = ''
+  const h = (s, st) => { const x = document.createElement('span'); x.style.cssText = st; x.textContent = s; return x }
+  body.style.cssText = 'display:flex;flex-direction:column;gap:8px;max-height:70vh;overflow:auto;'
+  const listBox = document.createElement('div')
+  listBox.style.cssText = 'display:flex;flex-direction:column;gap:4px;'
+  const drawList = () => {
+    listBox.innerHTML = ''
+    if (!srcs.length) { listBox.innerHTML = '<em style="font-size:12px;color:#94a3b8">No files added yet — click “Add PDF files”.</em>'; return }
+    srcs.forEach((s, i) => {
+      const row = document.createElement('div')
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:6px 8px;'
+      row.draggable = true
+      row.ondragstart = (ev) => { ev.dataTransfer.setData('text/i', String(i)) }
+      row.ondragover = (ev) => ev.preventDefault()
+      row.ondrop = (ev) => { ev.preventDefault(); const from = +ev.dataTransfer.getData('text/i'); if (from === i || isNaN(from)) return; const [x] = srcs.splice(from, 1); srcs.splice(i, 0, x); drawList() }
+      const num = h(i + 1, 'min-width:16px;text-align:center;font-weight:700;color:#22c55e;')
+      const nm = h(s.name, 'flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;')
+      const pg = document.createElement('input')
+      pg.type = 'text'; pg.value = (s.pages.length ? (s.pages[0] + 1) + '-' + (s.pages[s.pages.length - 1] + 1) : ''); pg.placeholder = 'pages'
+      pg.title = 'Pages to merge, e.g. 1-3,5'
+      pg.style.cssText = 'width:64px;padding:2px 4px;font-size:11px;border-radius:4px;background:#1e293b;color:#e2e8f0;border:1px solid #475569;'
+      pg.onchange = () => {
+        const src = srcs[i]
+        const total = src.doc.getPageCount()
+        const picks = src.pages.length ? (() => { const r = pg.value.trim(); if (!r) return src.pages; return parseRange(r, total) })() : []
+        if (picks && picks.length) { src.pages = picks; pg.value = (src.pages[0] + 1) + '-' + (src.pages[src.pages.length - 1] + 1) }
+        else { src.pages = src.doc.getPageIndices(); pg.value = '1-' + total }
+      }
+      const up = document.createElement('button'); up.textContent = '▲'; up.className = 'btn btn-small'; up.style.cssText = 'width:auto;padding:2px 6px;'; up.onclick = () => { if (i > 0) { [srcs[i - 1], srcs[i]] = [srcs[i], srcs[i - 1]]; drawList() } }
+      const dn = document.createElement('button'); dn.textContent = '▼'; dn.className = 'btn btn-small'; dn.style.cssText = 'width:auto;padding:2px 6px;'; dn.onclick = () => { if (i < srcs.length - 1) { [srcs[i + 1], srcs[i]] = [srcs[i], srcs[i + 1]]; drawList() } }
+      const rm = document.createElement('button'); rm.textContent = '✕'; rm.className = 'btn btn-small'; rm.style.cssText = 'width:auto;padding:2px 6px;background:#fee2e2;color:#991b1b;'; rm.onclick = () => { srcs.splice(i, 1); drawList() }
+      row.append(num, nm, pg, up, dn, rm)
+      listBox.appendChild(row)
+    })
+  }
+  const addBtn = document.createElement('button'); addBtn.className = 'btn btn-small'; addBtn.textContent = '+ Add PDF files…'
+  const fileIn = document.createElement('input'); fileIn.type = 'file'; fileIn.accept = '.pdf'; fileIn.multiple = true; fileIn.hidden = true
+  addBtn.onclick = () => fileIn.click()
+  fileIn.onchange = async () => { for (const f of fileIn.files) if (inFile(f.name)) await add(f); drawList() }
+  // position option (append vs after current page) + current doc toggle
+  const posWrap = document.createElement('label')
+  posWrap.style.cssText = 'font-size:12px;display:flex;align-items:center;gap:8px;'
+  const cnt = document.createElement('span'); cnt.textContent = 'docs in queue: 0'
+  const refreshCnt = () => { cnt.textContent = 'docs in queue: ' + srcs.length }
+  const posSel = document.createElement('select')
+  posSel.style.cssText = 'padding:4px;border-radius:6px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;'
+  const posHint = h('', 'flex:1;font-size:11px;color:#94a3b8')
+  const refreshPos = () => {
+    const opts = []
+    if (e.pdfLibDoc) opts.push({ v: 'after', t: 'Insert after current document' }, { v: 'replace', t: 'Merge into a NEW document (replace current)' })
+    opts.push({ v: 'new', t: 'New document from files only' })
+    posSel.innerHTML = ''
+    opts.forEach((o) => { const op = document.createElement('option'); op.value = o.v; op.textContent = o.t; posSel.appendChild(op) })
+    posHint.textContent = e.pdfLibDoc ? `Current doc has ${e.totalPages} pages.` : 'No PDF open — files become a new document.'
+  }
+  refreshPos(); refreshCnt()
+  posWrap.append(posSel, posHint, cnt)
+  body.append(listBox, posWrap, addBtn, fileIn)
+  drawList()
+  const ok = document.getElementById('actionOk'), cancel = document.getElementById('actionCancel')
+  ok.textContent = 'Merge'
+  let done = false
+  const cleanup = (val) => { if (done) return; done = true; m.classList.add('hidden'); ok.onclick = null; cancel.onclick = null; m.onclick = null }
+  const finish = async () => {
+    if (!srcs.length) { status('Pick at least one PDF file to merge'); return }
+    const { PDFDocument } = e.libs
+    const mode = posSel.value
+    const docs = []
+    for (const s of srcs) {
+      const picks = s.pages && s.pages.length ? s.pages : s.doc.getPageIndices()
+      const nd = await PDFDocument.create()
+      for (const p of picks) nd.addPage((await nd.copyPages(s.doc, [p]))[0])
+      docs.push(nd)
+    }
+    if (mode === 'new' || !e.pdfLibDoc) {
+      const nd = await PDFDocument.create()
+      for (const d of docs) (await nd.copyPages(d, d.getPageIndices())).forEach((p) => nd.addPage(p))
+      window.__docName = 'merged.pdf'
+      await e.reloadFromBytes(await nd.save())
+      renderThumbs()
+      status(`Merged ${docs.length} file${docs.length > 1 ? 's' : ''} → merged.pdf (${e.totalPages} pages)`)
+    } else if (mode === 'replace') {
+      const doc = e.pdfLibDoc
+      const nd = await PDFDocument.create()
+      for (const p of doc.getPageIndices()) nd.addPage((await nd.copyPages(doc, [p]))[0])
+      for (const d of docs) (await nd.copyPages(d, d.getPageIndices())).forEach((p) => nd.addPage(p))
+      window.__docName = 'merged.pdf'
+      await e.reloadFromBytes(await nd.save())
+      renderThumbs()
+      status(`Merged current document + ${docs.length} file${docs.length > 1 ? 's' : ''} → merged.pdf (${e.totalPages} pages)`)
+    } else {
+      const doc = e.pdfLibDoc
+      const order = doc.getPageIndices()
+      const sources = []
+      const at = e.visiblePageIndex() + 1
+      const pos = {}
+      let n = 0
+      order.forEach((o) => {
+        if (n === at) { for (const d of docs) d.getPageIndices().forEach((i) => { sources.push({ doc: d, index: i }) }) }
+        sources.push({ doc, index: o }); pos[o] = n; n++
+      })
+      if (at >= order.length) { for (const d of docs) d.getPageIndices().forEach((i) => sources.push({ doc: d, index: i })) }
+      await rebuild(sources, (old) => pos[old], `Merged ${docs.length} file${docs.length > 1 ? 's' : ''} into current document`)
+    }
+    done = true; m.classList.add('hidden')
+  }
+  ok.onclick = finish
+  cancel.onclick = () => cleanup(null)
+  m.onclick = (e) => { if (e.target === m) cleanup(null) }
+  m.classList.remove('hidden')
 }
 // Delete pages IMMEDIATELY (rebuilds the document right away, not on Save)
 async function deletePagesNow(indices) {

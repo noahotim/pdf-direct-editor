@@ -1077,6 +1077,10 @@ function buildCommands() {
   const click = (sel) => () => document.querySelector(sel)?.click()
   return [
     { label: 'Open PDF', hint: 'File', run: click('#fileInput') },
+    { label: 'Open Word (.docx)', hint: 'Docs', run: () => document.querySelector('.side-tab[data-tab="docs"]')?.click() || setTimeout(() => document.getElementById('dOpenWord')?.click(), 50) },
+    { label: 'Open PowerPoint (.pptx)', hint: 'Docs', run: () => document.querySelector('.side-tab[data-tab="docs"]')?.click() || setTimeout(() => document.getElementById('dOpenPpt')?.click(), 50) },
+    { label: 'Open Excel (.xlsx)', hint: 'Sheets', run: () => document.querySelector('.side-tab[data-tab="sheets"]')?.click() || setTimeout(() => document.getElementById('sheetOpen')?.click(), 50) },
+    { label: 'New Spreadsheet', hint: 'Sheets', run: () => document.getElementById('sheetNew')?.click() },
     { label: 'Save PDF (Ctrl+S)', hint: 'File', run: () => E().saveBtn.click() },
     { label: 'New Blank PDF', hint: 'File', run: () => document.querySelector('#menubar [data-act="new"]')?.click() },
     { label: 'Print (Ctrl+P)', hint: 'File', run: () => document.querySelector('#menubar [data-act="print"]')?.click() },
