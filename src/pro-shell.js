@@ -222,11 +222,29 @@ document.addEventListener('click', (e) => {
 // ---- clipboard: copy / paste / duplicate ----
 let clipboard = null
 function copySel() {
+  // If there's a text selection (PDF text, highlight text, etc.), let the browser handle it and also copy to system clipboard
+  const sel = window.getSelection()
+  const selText = sel ? sel.toString().trim() : ''
+  if (selText) {
+    // Also copy to clipboard for reliability, then let browser do its thing
+    navigator.clipboard.writeText(selText).then(() => status(`Copied text: "${selText.slice(0,40)}"`)).catch(() => {})
+    return
+  }
   const e = E()
-  const ed = e.selectedEl ? e.getEditForEl(e.selectedEl) : null
-  if (!ed) return status('Nothing selected to copy')
+  const el = e.selectedEl
+  const ed = el ? e.getEditForEl(el) : null
+  if (!ed) return status('Nothing selected to copy — select text or an object')
+  // Highlights: copy their text content directly
+  if (ed.type === 'highlight' && ed.text) {
+    navigator.clipboard.writeText(ed.text).then(() => status(`Copied highlighted text: "${ed.text.slice(0,40)}"`)).catch(() => status('Copy failed'))
+    return
+  }
+  // For text boxes, also copy the text
+  if (ed.type === 'text' && ed.text) {
+    navigator.clipboard.writeText(ed.text).catch(() => {})
+  }
   clipboard = JSON.parse(JSON.stringify(ed))
-  status(`Copied ${ed.type} (page ${ed.pageIndex + 1})`)
+  status(`Copied ${ed.type} (page ${ed.pageIndex + 1}) — Ctrl+V to paste`)
 }
 function pasteClip() {
   const e = E()
@@ -300,7 +318,7 @@ function showShortcuts() {
 }
 function showAbout() {
   showInfo('About', `<div style="font-size:12px;line-height:1.8;">
-    <b>BOTIM DOCSHUB v1.8.3</b><br/>Developed by <b>Otim Noah</b><br/>
+    <b>BOTIM DOCSHUB v1.8.4</b><br/>Developed by <b>Otim Noah</b><br/>
     Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
     Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }
@@ -335,8 +353,16 @@ document.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase()
     if (k === 's') { e.preventDefault(); E().saveBtn.click() }
     else if (k === 'p') { e.preventDefault(); const fn = Actions['print']; if (fn) fn() }
-    else if (!typing && k === 'c') { e.preventDefault(); copySel() }
-    else if (!typing && k === 'v') { e.preventDefault(); pasteClip() }
+    else if (!typing && k === 'c') {
+      const sel = window.getSelection()
+      if (sel && sel.toString().trim()) return // let browser copy the selected PDF/highlight text
+      e.preventDefault(); copySel()
+    }
+    else if (!typing && k === 'v') {
+      const sel = window.getSelection()
+      if (sel && !E().selectedEl) return // let browser paste into focused text
+      e.preventDefault(); pasteClip()
+    }
     else if (!typing && k === 'd') { e.preventDefault(); copySel(); pasteClip() }
   } else if (!typing) {
     if (e.key === 'Delete' || e.key === 'Backspace') { if (E().removeSelected()) { e.preventDefault(); status('Deleted selection') } }

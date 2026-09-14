@@ -77,12 +77,40 @@ async function createWindow(){
   win.setMenuBarVisibility(false)
 }
 
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) app.quit()
+
+let pendingFile = null
+function fileArgv(a){ return a.find(x => /\.(pdf|docx|pptx|txt|png|jpe?g|webp)$/i.test(x)) }
+
+app.on('second-instance', (_e, argv) => {
+  const f = fileArgv(argv)
+  const win = BrowserWindow.getAllWindows()[0]
+  if (win) { if (win.isMinimized()) win.restore(); win.focus() }
+  if (f) {
+    if (win) win.webContents.send('botim:openFile', f)
+    else pendingFile = f
+  }
+})
+app.on('open-file', (e, p) => { e.preventDefault(); const win = BrowserWindow.getAllWindows()[0]; if (win) win.webContents.send('botim:openFile', p); else pendingFile = p })
+
 app.whenReady().then(async () => {
   await createWindow()
   setupUpdater()
+  const f = fileArgv(process.argv)
+  if (f) {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) setTimeout(() => win.webContents.send('botim:openFile', f), 900)
+    else pendingFile = f
+  }
 })
 app.on('window-all-closed', ()=>{ if(process.platform!=='darwin') app.quit() })
 app.on('activate', ()=>{ if(BrowserWindow.getAllWindows().length===0) createWindow() })
+
+// deliver pending file once the renderer is ready
+ipcMain.on('botim:rendererReady', (e) => {
+  if (pendingFile) { e.sender.send('botim:openFile', pendingFile); pendingFile = null }
+})
 
 // ===== custom auto-update: downloads the REAL Setup.exe from GitHub and runs it (no localStorage) =====
 function setupUpdater(){
@@ -141,4 +169,13 @@ function setupUpdater(){
 
   // Fallback: open a URL in the system browser (real GitHub download page)
   ipcMain.handle('botim:openUrl', (e, url) => { try { shell.openExternal(url) } catch {} ; return { ok:true } })
+
+  // File-association: read a file dropped/opened via OS double-click and return its bytes to the renderer
+  ipcMain.handle('botim:readFile', async (_e, filePath) => {
+    try {
+      const data = await fs.promises.readFile(filePath)
+      // transfer as base64 to avoid IPC ArrayBuffer issues
+      return { ok:true, name: path.basename(filePath), b64: data.toString('base64') }
+    } catch (err) { return { ok:false, error:String(err.message||err) } }
+  })
 }

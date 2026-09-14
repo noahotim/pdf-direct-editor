@@ -183,10 +183,38 @@ previewCoverBtn?.addEventListener('click', async()=>{
 // drag cover also
 viewer.addEventListener('dragover', e=>{ if(e.dataTransfer.types.includes('Files')) e.preventDefault() })
 
-fileInput.addEventListener('change', e=>{ if(e.target.files[0]) loadPdf(e.target.files[0]) })
+// open any document with BOTIM DOCSHUB — PDF, Word, PowerPoint, text, images
+async function openAnyFile(file){
+  if(!file) return
+  const n=file.name.toLowerCase()
+  if(n.endsWith('.pdf')) return loadPdf(file)
+  if(n.endsWith('.docx')){ const m=await import('./pro-docs.js'); await m.openWord(file); document.querySelector('.side-tab[data-tab="docs"]')?.click(); return }
+  if(n.endsWith('.pptx')){ const m=await import('./pro-docs.js'); await m.openPpt(file); document.querySelector('.side-tab[data-tab="docs"]')?.click(); return }
+  if(n.endsWith('.txt')||n.endsWith('.md')||n.endsWith('.csv')){ const t=await file.text(); const m=await import('./pro-docs.js'); const c=document.getElementById('docWordCanvas'); if(c){ c.innerHTML=`<pre style="white-space:pre-wrap;font-family:monospace;">${t.replace(/</g,'&lt;')}</pre>`; document.querySelector('.side-tab[data-tab="docs"]')?.click(); status(`Opened text file ${file.name} — edit then Save as Word/PDF`) } return }
+  if(/^image\//.test(file.type) || /\.(png|jpe?g|webp|bmp|gif)$/i.test(n)){
+    const url=URL.createObjectURL(file); const img=new Image(); img.src=url; await img.decode().catch(()=>{})
+    const ov=document.querySelector('.overlay')||document.getElementById('pdfContainer')
+    if(document.querySelector('.overlay')){
+      const pi=E().visiblePageIndex?E().visiblePageIndex():0, ov2=E().visibleOverlay?E().visibleOverlay():document.querySelector('.overlay')
+      const src=await fileToDataUrl(file)
+      const ed={id:Date.now()+Math.random(),pageIndex:pi,type:'image',x:40,y:40,w:Math.min(300,img.width/2),h:Math.min(300,img.height/2),src}
+      E().pushUndo(); E().edits.push(ed); if(ov2) E().createImageEl(ov2, ed); status(`Image ${file.name} added — drag to position`)
+    } else {
+      // no PDF open yet — create a new PDF from the image
+      const { PDFDocument }=await import('pdf-lib'); const d=await PDFDocument.create(); const bytes=await file.arrayBuffer();
+      let img; try{ img=await d.embedPng(bytes)}catch{ img=await d.embedJpg(bytes)}
+      const pg=d.addPage([img.width, img.height]); pg.drawImage(img,{x:0,y:0,width:img.width,height:img.height})
+      window.__docName=file.name.replace(/\.[^.]+$/,'')+'.pdf'; await E().reloadFromBytes(await d.save()); status(`Created PDF from image ${file.name}`)
+    }
+    return
+  }
+  status(`Unsupported file type: ${file.name} — try PDF, Word, PowerPoint, text or image`)
+}
+fileInput.addEventListener('change', e=>{ if(e.target.files[0]) openAnyFile(e.target.files[0]); e.target.value='' })
 viewer.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag') })
 viewer.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'))
-viewer.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f && f.type==='application/pdf') loadPdf(f); else status('Drop a PDF file') })
+viewer.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag'); const files=[...e.dataTransfer.files]; if(!files.length) return; // handle any document type
+  for(const f of files){ openAnyFile(f) } })
 
 async function loadPdf(file){
   originalBytes = new Uint8Array(await file.arrayBuffer())
@@ -1311,9 +1339,25 @@ async function rasterizeRedactedPages(bytes, keep, needNew){
   return out
 }
 
+// OS double-click handler — open any document (PDF/DOCX/PPTX/TXT/image) via file association
+if (window.botimOpen) {
+  window.botimOpen.onFile(async (filePath) => {
+    try {
+      status('Opening ' + filePath.split(/[\\/]/).pop() + '…')
+      const r = await window.botimOpen.readFile(filePath)
+      if (!r || !r.ok) return status('Failed to open file: ' + (r && r.error || filePath))
+      const bytes = Uint8Array.from(atob(r.b64), (c) => c.charCodeAt(0))
+      const file = new File([bytes], r.name, { type: '' })
+      await openAnyFile(file)
+    } catch (e) { status('Failed to open file: ' + e.message) }
+  })
+  window.botimOpen.ready()
+}
+
 // ===== Bridge for professional extension modules (pro-*.js) =====
 // Exposes core state + actions so new features reuse the existing architecture.
 window.PDFE = {
+  openAnyFile,
   get edits(){ return edits }, set edits(v){ edits=v },
   get pdfLibDoc(){ return pdfLibDoc }, set pdfLibDoc(v){ pdfLibDoc=v },
   get pdfDocProxy(){ return pdfDocProxy }, set pdfDocProxy(v){ pdfDocProxy=v },

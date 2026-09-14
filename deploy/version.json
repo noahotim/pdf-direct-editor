@@ -1,9 +1,9 @@
 {
-  "version": "1.8.3",
+  "version": "1.8.4",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.3/BOTIM-DOCSHUB-Setup-1.8.3.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.3/BOTIM-DOCSHUB-Portable-1.8.3.zip",
-  "released": "2026-09-12",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.4/BOTIM-DOCSHUB-Setup-1.8.4.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.4/BOTIM-DOCSHUB-Portable-1.8.4.zip",
+  "released": "2026-09-14",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.8.3 - no DevTools popup on launch, highlighted text now copyable (right-click \u2192 Copy), free on-device AI expanded (13 models + custom ID)"
+  "notes": "BOTIM DOCSHUB 1.8.4 - open any document with BOTIM (PDF/DOCX/PPTX/TXT/images via File Open, drag-drop, or double-click), file associations for Windows, highlighted text now copyable, no DevTools popup"
 }

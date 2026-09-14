@@ -66,6 +66,12 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;c
 .delete-cover .del-x,.delete-cover .resize-handle{display:none}
 .delete-cover:hover .del-x,.delete-cover.selected .del-x{display:block}
 .delete-cover.selected .resize-handle{display:block}
+/* Highlights: copyable text, don't block underlying PDF text selection when not interacting */
+.highlight-copy{pointer-events:none;user-select:text}
+.highlight-copy.selected{pointer-events:auto}
+.highlight-copy:hover{pointer-events:auto}
+.pdf-text-layer{position:absolute;inset:0;pointer-events:auto;user-select:text;z-index:1}
+.pdf-text-layer span{user-select:text;pointer-events:auto}
 .editable-text b{font-weight:800}
 .editable-text i{font-style:italic}
 .editable-text u{text-decoration:underline}

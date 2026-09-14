@@ -13,3 +13,13 @@ contextBridge.exposeInMainWorld('botimUpdater', {
     return () => ipcRenderer.removeListener('botim:updateStatus', h)
   }
 })
+// file-association bridge — OS double-click opens with BOTIM DOCSHUB
+contextBridge.exposeInMainWorld('botimOpen', {
+  onFile: (cb) => {
+    const h = (_e, filePath) => cb(filePath)
+    ipcRenderer.on('botim:openFile', h)
+    return () => ipcRenderer.removeListener('botim:openFile', h)
+  },
+  ready: () => ipcRenderer.send('botim:rendererReady'),
+  readFile: (filePath) => ipcRenderer.invoke('botim:readFile', filePath)
+})
