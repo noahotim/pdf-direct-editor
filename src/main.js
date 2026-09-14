@@ -262,6 +262,31 @@ async function renderAll(){
     })
 
     await page.render({ canvasContext: ctx, viewport }).promise
+    // selectable text layer — makes all PDF text copyable (Ctrl+A/C) even without highlights
+    try {
+      const tc = await page.getTextContent()
+      const tl = document.createElement('div')
+      tl.className = 'pdf-text-layer'
+      tl.style.cssText = 'position:absolute;inset:0;pointer-events:auto;user-select:text;'
+      for (const it of tc.items || []) {
+        if (!it.str || !it.str.trim()) continue
+        const tx = pdfjsLib.Util.transform(viewport.transform, it.transform)
+        const fs = Math.hypot(tx[2], tx[3]) || 10
+        const sp = document.createElement('span')
+        sp.textContent = it.str + ' '
+        sp.style.position = 'absolute'
+        sp.style.left = tx[4] + 'px'
+        sp.style.top = (tx[5] - fs * 0.85) + 'px'
+        sp.style.fontSize = fs + 'px'
+        sp.style.lineHeight = '1'
+        sp.style.whiteSpace = 'pre'
+        sp.style.color = 'transparent'
+        sp.style.userSelect = 'text'
+        sp.style.pointerEvents = 'auto'
+        tl.appendChild(sp)
+      }
+      overlay.appendChild(tl)
+    } catch {}
     // re-apply edits for this page
     reapplyEdits(overlay, i-1, viewport)
     // form fields overlay
@@ -430,21 +455,52 @@ function createTextEl(overlay, ed){
 }
 
 // highlight / note
-function addHighlight(overlay, pageIndex, x, y){
+async function addHighlight(overlay, pageIndex, x, y){
   const id=Date.now()+Math.random()
   const color=document.getElementById('colorPicker').value
   const opacity=document.getElementById('opacity').value
-  const ed={id,pageIndex,type:'highlight',x:x-40,y:y-8,w:120,h:18,color,opacity}
+  const ed={id,pageIndex,type:'highlight',x:x-40,y:y-8,w:120,h:18,color,opacity,text:''}
+  // try to capture the underlying PDF text for copying
+  try{
+    const page = await pdfDocProxy.getPage(pageIndex+1)
+    const vp = page.getViewport({ scale: currentZoom })
+    const U = pdfjsLib.Util, tc = await page.getTextContent()
+    const rx=ed.x, ry=ed.y, rw=ed.w, rh=ed.h
+    const hits=[]
+    for(const it of (tc.items||[])){
+      if(!it.str || !it.str.trim()) continue
+      const tx=U.transform(vp.transform, it.transform)
+      const fs=Math.hypot(tx[2],tx[3])||10, w=(it.width||it.str.length*fs*0.5), h=fs*1.2
+      const ix=tx[4], iy=tx[5]-h*0.85
+      if(!(ix+ w < rx || ix > rx+rw || iy+ h < ry || iy > ry+rh)) hits.push({x:ix, text:it.str})
+    }
+    hits.sort((a,b)=>a.x-b.x)
+    ed.text = hits.map(h=>h.text).join(' ').trim()
+  }catch{}
+  pushUndo()
   edits.push(ed); createHighlightEl(overlay, ed)
+  status(ed.text ? `Highlighted: "${ed.text.slice(0,40)}" — right-click to copy` : 'Highlight added — drag to cover words, right-click to copy')
 }
 function createHighlightEl(overlay, ed){
   const el=document.createElement('div')
-  el.className='editable-text'
+  el.className='editable-text highlight-copy'
   el.dataset.id=ed.id
   el.style.left=ed.x+'px';el.style.top=ed.y+'px';el.style.width=ed.w+'px';el.style.height=ed.h+'px'
   el.style.background=hexToRgba(ed.color, ed.opacity*0.35)
   el.style.border='1px solid '+hexToRgba(ed.color,0.5)
+  el.style.userSelect='text'
+  el.style.cursor='text'
+  if(ed.text){ el.title='Right-click → Copy  •  "'+ed.text.slice(0,60)+'"'; el.textContent=ed.text; el.style.color='transparent'; el.style.fontSize='10px'; el.style.overflow='hidden'; el.style.whiteSpace='nowrap' }
+  else el.title='Highlight — right-click → Copy (no text detected, try dragging more precisely)'
   makeDraggable(el, ed, overlay)
+  // right-click copy
+  el.addEventListener('contextmenu', async (e)=>{
+    e.preventDefault()
+    const txt = ed.text || el.textContent || ''
+    if(!txt.trim()) return status('No text in this highlight to copy')
+    try{ await navigator.clipboard.writeText(txt); status('Copied highlighted text ✓') }catch{ status('Copy failed — select the highlight and press Ctrl+C') }
+  })
+  el.addEventListener('click', (e)=>{ e.stopPropagation(); selectEl(el) })
   overlay.appendChild(el)
 }
 function addNote(overlay, pageIndex, x, y){

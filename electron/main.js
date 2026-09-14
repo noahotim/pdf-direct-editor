@@ -68,9 +68,12 @@ async function createWindow(){
     // keep server alive
     app.on('before-quit', ()=> srv.close())
   }
-  win.webContents.openDevTools({mode:'detach'})
-  win.webContents.on('did-fail-load', (e, code, desc, url)=> console.error('load failed', code, desc, url))
-  win.webContents.on('console-message', (e,lvl,msg)=> console.log('renderer:', msg))
+  // DevTools only in development — removed from production (was showing Elements/Console/Sources/Network on launch)
+  if (isDev) {
+    win.webContents.openDevTools({ mode: 'detach' })
+    win.webContents.on('console-message', (e, lvl, msg) => console.log('renderer:', msg))
+  }
+  win.webContents.on('did-fail-load', (e, code, desc, url) => console.error('load failed', code, desc, url))
   win.setMenuBarVisibility(false)
 }
 

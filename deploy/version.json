@@ -1,9 +1,9 @@
 {
-  "version": "1.8.2",
+  "version": "1.8.3",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.2/BOTIM-DOCSHUB-Setup-1.8.2.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.2/BOTIM-DOCSHUB-Portable-1.8.2.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.3/BOTIM-DOCSHUB-Setup-1.8.3.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.3/BOTIM-DOCSHUB-Portable-1.8.3.zip",
   "released": "2026-09-12",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.8.2 - more free open-source AI models (Llama 3.1/3.2, Phi-3.5, Gemma 2, Qwen 2.5, Mistral 7B, DeepSeek-R1, SmolLM2, Hermes-2) + custom model ID support; seamless auto-updates"
+  "notes": "BOTIM DOCSHUB 1.8.3 - no DevTools popup on launch, highlighted text now copyable (right-click \u2192 Copy), free on-device AI expanded (13 models + custom ID)"
 }
