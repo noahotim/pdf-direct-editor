@@ -290,9 +290,13 @@ async function smartSearch(q) {
 }
 
 // ================= Quick Actions (NL command center) =================
-function snapDoc() {
+async function snapDoc() {
   const e = E()
-  return { bytes: e.originalBytes.slice(), edits: JSON.parse(JSON.stringify(e.edits)) }
+  let bytes
+  try { bytes = e.originalBytes.slice() } catch {
+    try { bytes = await e.pdfLibDoc.save() } catch { bytes = new Uint8Array(0) }
+  }
+  return { bytes, edits: JSON.parse(JSON.stringify(e.edits)) }
 }
 async function restoreSnap(s) {
   const e = E()
@@ -333,7 +337,7 @@ async function execCommand(p) {
   const { PDFDocument, degrees } = e.libs
   switch (p.action) {
     case 'deletePages': {
-      lastSnap = snapDoc()
+      lastSnap = await snapDoc()
       const drop = new Set(p.params.pages.map((n) => n - 1))
       if (drop.size >= e.totalPages) throw new Error('refusing to delete every page')
       const order = e.pdfLibDoc.getPageIndices().filter((i) => !drop.has(i))
@@ -343,7 +347,7 @@ async function execCommand(p) {
       break
     }
     case 'rotatePage': {
-      lastSnap = snapDoc()
+      lastSnap = await snapDoc()
       const pg = e.pdfLibDoc.getPage(p.params.page - 1)
       pg.setRotation(degrees((pg.getRotation().angle + p.params.dir + 360) % 360))
       await e.reloadFromBytes(await e.pdfLibDoc.save(), { keepEdits: true })
@@ -351,7 +355,7 @@ async function execCommand(p) {
       break
     }
     case 'addBlank': {
-      lastSnap = snapDoc()
+      lastSnap = await snapDoc()
       const s0 = e.pdfLibDoc.getPage(0).getSize()
       const tmp = await PDFDocument.create()
       tmp.addPage([s0.width, s0.height])
@@ -408,7 +412,7 @@ async function quickRemoveBlanks() {
   if (!d) return
   const blanks = d.pages.filter((p) => !p.text.trim() && !p.images).map((p) => p.n)
   if (!blanks.length) return status('No blank pages found')
-  lastSnap = snapDoc()
+  lastSnap = await snapDoc()
   const e = E()
   const drop = new Set(blanks.map((n) => n - 1))
   const order = e.pdfLibDoc.getPageIndices().filter((i) => !drop.has(i))
@@ -462,7 +466,7 @@ async function runHealth() {
   body.querySelector('#hlAutoFix').onclick = () => { document.getElementById('actionModal').classList.add('hidden'); autoFixHealth(d) }
   body.querySelector('#hlFix').onclick = async () => {
     document.getElementById('actionModal').classList.add('hidden')
-    lastSnap = snapDoc()
+    lastSnap = await snapDoc()
     const drop = new Set()
     d.pages.forEach((p) => { if (!p.text.trim() && !p.images) drop.add(p.n - 1) })
     if (dups) {
@@ -488,7 +492,7 @@ async function autoFixHealth(data) {
   const { degrees } = e.libs
   const t = taskBegin('Auto-fixing document health')
   try {
-    lastSnap = snapDoc()
+    lastSnap = await snapDoc()
     lastSnap.meta = { title: e.pdfLibDoc.getTitle(), author: e.pdfLibDoc.getAuthor(), subject: e.pdfLibDoc.getSubject(), creator: e.pdfLibDoc.getCreator() }
     const done = []
 
@@ -584,7 +588,7 @@ async function openCleanup() {
   ], 'Preview & Apply Selected')
   if (!r) return
   if (r.compress) { document.querySelector('#menubar [data-act="compress"]')?.click(); return }
-  lastSnap = snapDoc()
+  lastSnap = await snapDoc()
   const before = { title: e.pdfLibDoc.getTitle(), author: e.pdfLibDoc.getAuthor(), subject: e.pdfLibDoc.getSubject(), creator: e.pdfLibDoc.getCreator() }
   lastSnap.meta = before
   const drop = new Set()
@@ -712,7 +716,7 @@ async function metadataCleaner() {
     <small style="color:#94a3b8;">Embedded files/JS removal is honestly out of scope for pdf-lib; only metadata + editor annotations are removed here.</small></div>`)
   const anyMeta = rows.some(([k]) => r[k])
   if (anyMeta) {
-    lastSnap = snapDoc()
+    lastSnap = await snapDoc()
     lastSnap.meta = { title: d.getTitle(), author: d.getAuthor(), subject: d.getSubject(), creator: d.getCreator() }
     try {
       if (r.title) d.setTitle('')
@@ -835,7 +839,7 @@ async function insertTocPage() {
   const d = await analyzeDoc(false)
   if (!d || !d.sections.length) return status('No sections detected — cannot build TOC')
   const e = E()
-  lastSnap = snapDoc()
+  lastSnap = await snapDoc()
   const { PDFDocument, StandardFonts, rgb } = e.libs
   const tmp = await PDFDocument.create()
   const s0 = e.pdfLibDoc.getPage(0).getSize()

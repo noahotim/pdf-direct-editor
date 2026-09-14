@@ -1,9 +1,9 @@
 {
-  "version": "1.8.5",
+  "version": "1.8.6",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.5/BOTIM-DOCSHUB-Setup-1.8.5.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.5/BOTIM-DOCSHUB-Portable-1.8.5.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.6/BOTIM-DOCSHUB-Setup-1.8.6.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.6/BOTIM-DOCSHUB-Portable-1.8.6.zip",
   "released": "2026-09-14",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.8.5 - open any document with BOTIM (PDF/DOCX/PPTX/TXT/images), Windows file associations, highlighted text copyable, no DevTools popup"
+  "notes": "BOTIM DOCSHUB 1.8.6 - fix Auto-Fix Health crash (detached ArrayBuffer), prevent PDF text detach on open"
 }

@@ -221,7 +221,7 @@ async function loadPdf(file){
   // keep pdf-lib doc for saving
   pdfLibDoc = await PDFDocument.load(originalBytes)
   // pdf.js for rendering
-  const loadingTask = pdfjsLib.getDocument({ data: originalBytes })
+  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(originalBytes) })
   pdfDocProxy = await loadingTask.promise
   totalPages = pdfDocProxy.numPages
   edits = []
@@ -1390,7 +1390,7 @@ window.PDFE = {
   async reloadFromBytes(bytes, opts={}){
     originalBytes = bytes
     pdfLibDoc = await PDFDocument.load(bytes)
-    const task = pdfjsLib.getDocument({ data: bytes })
+    const task = pdfjsLib.getDocument({ data: new Uint8Array(bytes) })
     pdfDocProxy = await task.promise
     totalPages = pdfDocProxy.numPages
     if(!opts.keepEdits) edits=[]
