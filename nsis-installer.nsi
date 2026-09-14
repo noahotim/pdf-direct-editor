@@ -1,7 +1,7 @@
 ; BOTIM DOCSHUB by Otim Noah - Installer (per-user, seamless updates)
 ; Per-user install => no admin prompt => updates can install silently & relaunch.
 !define PRODUCT_NAME "BOTIM DOCSHUB"
-!define PRODUCT_VERSION "1.8.4"
+!define PRODUCT_VERSION "1.8.5"
 !define PRODUCT_PUBLISHER "Otim Noah"
 !define PRODUCT_WEB_SITE "https://github.com/noahotim/pdf-direct-editor"
 !define PRODUCT_EXE "BOTIM-DOCSHUB.exe"
@@ -12,19 +12,19 @@ SetCompressor zlib
 RequestExecutionLevel user
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "release\BOTIM-DOCSHUB-Setup-1.8.4.exe"
+OutFile "release\BOTIM-DOCSHUB-Setup-1.8.5.exe"
 InstallDir "$LOCALAPPDATA\Programs\BOTIM DOCSHUB"
 InstallDirRegKey HKCU "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
 
-VIProductVersion "1.8.4.0"
+VIProductVersion "1.8.5.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "CompanyName" "Otim Noah"
 VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 Otim Noah — BOTIM DOCSHUB"
 VIAddVersionKey "FileDescription" "BOTIM DOCSHUB by Otim Noah - PDF, Word, PowerPoint Editor, Converter & AI"
-VIAddVersionKey "FileVersion" "1.8.4"
-VIAddVersionKey "ProductVersion" "1.8.4"
+VIAddVersionKey "FileVersion" "1.8.5"
+VIAddVersionKey "ProductVersion" "1.8.5"
 
 Icon "public\icon.ico"
 
