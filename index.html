@@ -9,6 +9,22 @@
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
+  <div id="welcomeOverlay" class="welcome-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
+    <div class="welcome-box">
+      <div class="welcome-logo">📄</div>
+      <h1>Welcome to BOTIM DOCSHUB</h1>
+      <p class="welcome-sub">by <b>Otim Noah</b> — PDF • Word • PowerPoint Editor & Converter</p>
+      <p class="welcome-tagline">Edit & Convert directly without disorganising layout. Works offline.</p>
+      <ul class="welcome-features">
+        <li>📄 PDF — edit text, images, highlights & signatures</li>
+        <li>📝 Word & PowerPoint Studio</li>
+        <li>📊 Excel Spreadsheet Editor</li>
+        <li>🤖 On-device AI Assistant</li>
+      </ul>
+      <button id="welcomeEnter" class="btn btn-primary welcome-enter">Get Started →</button>
+      <small>BOTIM DOCSHUB v1.8.8 • Installable on any PC • Press Enter to continue</small>
+    </div>
+  </div>
   <nav class="menubar" id="menubar">
     <div class="menu" data-menu="file"><button class="menu-btn">File</button><div class="menu-drop">
       <button data-act="open">📂 Open PDF…</button>
@@ -257,7 +273,7 @@
 
       <div class="info">
         <small>💡 All edits save <b>directly to PDF</b> — no Word conversion. Works offline. Installable on any PC.</small>
-        <small style="display:block;margin-top:6px;color:#38bdf8;">Developed by <b>Otim Noah</b> • BOTIM DOCSHUB v1.8.7 — PDF • Word • PowerPoint</small>
+        <small style="display:block;margin-top:6px;color:#38bdf8;">Developed by <b>Otim Noah</b> • BOTIM DOCSHUB v1.8.8 — PDF • Word • PowerPoint</small>
       </div>
       </div><!-- /tab-tools -->
       <div id="tab-pages" class="hidden">
@@ -469,5 +485,25 @@
   <script type="module" src="./src/pro-feedback.js"></script>
   <script type="module" src="./src/pro-ai.js"></script>
   <script type="module" src="./src/pro-ai-chat.js"></script>
+  <script>
+    (function(){
+      const ov=document.getElementById('welcomeOverlay');
+      const btn=document.getElementById('welcomeEnter');
+      if(!ov||!btn) return;
+      function dismiss(){
+        if(ov.dataset.dismissed) return;
+        ov.dataset.dismissed='1';
+        ov.style.transition='opacity .4s ease';
+        ov.style.opacity='0';
+        setTimeout(()=>{ov.style.display='none';},420);
+      }
+      btn.addEventListener('click', dismiss);
+      ov.addEventListener('click', (e)=>{ if(e.target===ov) dismiss(); });
+      document.addEventListener('keydown', (e)=>{
+        if(ov.style.display==='none') return;
+        if(e.key==='Enter'||e.key==='Escape'||e.key===' ') dismiss();
+      });
+    })();
+  </script>
 </body>
 </html>
