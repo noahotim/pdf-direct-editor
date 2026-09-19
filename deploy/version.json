@@ -1,9 +1,9 @@
 {
-  "version": "1.9.1",
+  "version": "1.9.2",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.9.1/BOTIM-DOCSHUB-Setup-1.9.1.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.9.1/BOTIM-DOCSHUB-Portable-1.9.1.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.9.2/BOTIM-DOCSHUB-Setup-1.9.2.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.9.2/BOTIM-DOCSHUB-Portable-1.9.2.zip",
   "released": "2026-09-14",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.9.1 - Install updates directly (one-click Install, no Download step); Animated 5s splash like Microsoft Word"
+  "notes": "BOTIM DOCSHUB 1.9.2 - Word auto page detection + full Microsoft design tools; PPT exceptional layouts/themes/shapes/animations — like Microsoft and more"
 }
