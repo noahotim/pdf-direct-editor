@@ -5,7 +5,7 @@
 // download + install. Works in the installed desktop app, PWA and browser.
 import { status, reg, openDialog } from './pro-core.js'
 
-export const APP_VERSION = '1.8.8'
+export const APP_VERSION = '1.8.9'
 // Update channel: version.json is attached to every GitHub release, fetched
 // through the stable "latest" URL (no server to maintain).
 // To move hosts, point this at any HTTPS URL serving version.json and republish.
@@ -129,16 +129,17 @@ function showBanner(info) {
     prog.textContent = 'Resolving download…'
     const exeUrl = await resolveExeUrl(info)   // always the direct .exe
     if (isDesktop) {
-      updNow.textContent = 'Downloading…'
-      prog.textContent = 'Downloading installer…'
+      // Direct install — no manual Downloads folder step. Downloads to hidden app cache and runs silently.
+      updNow.textContent = 'Updating…'
+      prog.textContent = 'Downloading update directly…'
       try {
-        const dl = await window.botimUpdater.download(exeUrl)   // saves to your Downloads folder, then installs
-        if (!dl || dl.ok === false) throw new Error((dl && dl.error) || 'download failed')
+        const ok = await autoUpdateNow(info)
+        if (!ok) throw new Error('auto-update failed')
       } catch (e) {
         updNow.disabled = false
         updNow.textContent = btnLabel
         prog.textContent = 'Opening download in browser instead…'
-        status('Auto-download failed, opening real download: ' + e.message)
+        status('Direct update failed, opening download: ' + e.message)
         window.botimUpdater.openUrl(exeUrl)
       }
     } else {
@@ -159,9 +160,21 @@ function showBanner(info) {
   }
   // listen for real download progress / completion from Electron main process
   if (isDesktop && window.botimUpdater.onStatus) {
-    window.botimUpdater.onStatus((p) => {
-      if (p.type === 'progress') prog.textContent = `Downloading installer… ${p.percent}%${p.total ? ` (${(p.downloaded/1048576).toFixed(1)}/${(p.total/1048576).toFixed(1)} MB)` : ''}`
+    window.botimUpdater.onStatus(async (p) => {
+      if (p.type === 'progress') prog.textContent = `Updating directly… ${p.percent}%${p.total ? ` (${(p.downloaded/1048576).toFixed(1)}/${(p.total/1048576).toFixed(1)} MB)` : ''}`
       if (p.type === 'downloaded') {
+        // Direct install — no second click needed when auto-update is ON
+        if (isAutoUpdate()) {
+          prog.textContent = `Downloaded (${(p.size/1048576).toFixed(1)} MB) — installing directly…`
+          updNow.textContent = 'Installing…'
+          updNow.disabled = true
+          status('Installing update directly — app will restart…')
+          try {
+            const r = await window.botimUpdater.install()
+            if (r && r.ok === false) throw new Error(r.error)
+          } catch (e) { prog.textContent = 'Install failed: ' + e.message; updNow.disabled = false; updNow.textContent = '🔄 Retry Update' }
+          return
+        }
         prog.textContent = `Downloaded installer (${(p.size/1048576).toFixed(1)} MB) — ready to update`
         updNow.textContent = '🔄 Restart & Update'
         updNow.disabled = false

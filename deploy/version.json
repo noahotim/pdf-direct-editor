@@ -1,9 +1,9 @@
 {
-  "version": "1.8.8",
+  "version": "1.8.9",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.8/BOTIM-DOCSHUB-Setup-1.8.8.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.8/BOTIM-DOCSHUB-Portable-1.8.8.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.9/BOTIM-DOCSHUB-Setup-1.8.9.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.8.9/BOTIM-DOCSHUB-Portable-1.8.9.zip",
   "released": "2026-09-14",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.8.8 - Welcome screen on launch before editor opens; Office suite: merge PDFs with drag-reorder, Word page break/delete/move, PPT slide duplicate/reorder/transitions, Excel spreadsheet editor"
+  "notes": "BOTIM DOCSHUB 1.8.9 - Direct auto-update (downloads to hidden cache and installs without manual Downloads step); Welcome screen on launch"
 }
