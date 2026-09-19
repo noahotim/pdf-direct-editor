@@ -5,7 +5,7 @@
 // download + install. Works in the installed desktop app, PWA and browser.
 import { status, reg, openDialog } from './pro-core.js'
 
-export const APP_VERSION = '1.9.0'
+export const APP_VERSION = '1.9.1'
 // Update channel: version.json is attached to every GitHub release, fetched
 // through the stable "latest" URL (no server to maintain).
 // To move hosts, point this at any HTTPS URL serving version.json and republish.
@@ -114,7 +114,7 @@ function showBanner(info) {
   const bar = document.createElement('div')
   bar.id = 'updateBanner'
   const isDesktop = !!(window.botimUpdater && window.desktop?.isDesktop)
-  const btnLabel = isDesktop ? '⬇️ Update Now' : '⬇️ Download Update'
+  const btnLabel = isDesktop ? '🔄 Install Update' : '⬇️ Download Update'
   bar.innerHTML = `<span>🎉 <b>Update available: v${info.version}</b> (you have v${APP_VERSION})${info.notes ? ` — ${info.notes}` : ''}</span>
     <span id="updProg" style="font-size:11px;color:#bbf7d0;display:none;"></span>
     <button id="updNow" class="btn btn-small" style="width:auto;background:#16a34a;border-color:#16a34a;color:#fff;">${btnLabel}</button>
@@ -126,20 +126,20 @@ function showBanner(info) {
   updNow.onclick = async () => {
     updNow.disabled = true
     prog.style.display = 'inline'
-    prog.textContent = 'Resolving download…'
+    prog.textContent = 'Preparing install…'
     const exeUrl = await resolveExeUrl(info)   // always the direct .exe
     if (isDesktop) {
-      // Direct install — no manual Downloads folder step. Downloads to hidden app cache and runs silently.
-      updNow.textContent = 'Updating…'
-      prog.textContent = 'Downloading update directly…'
+      // One-click Install — no manual download step. Installs directly from hidden cache and restarts.
+      updNow.textContent = 'Installing…'
+      prog.textContent = 'Installing update…'
       try {
         const ok = await autoUpdateNow(info)
-        if (!ok) throw new Error('auto-update failed')
+        if (!ok) throw new Error('install failed')
       } catch (e) {
         updNow.disabled = false
         updNow.textContent = btnLabel
-        prog.textContent = 'Opening download in browser instead…'
-        status('Direct update failed, opening download: ' + e.message)
+        prog.textContent = 'Install failed — opening download…'
+        status('Direct install failed, opening download: ' + e.message)
         window.botimUpdater.openUrl(exeUrl)
       }
     } else {
@@ -158,32 +158,32 @@ function showBanner(info) {
     bar.remove()
     try { localStorage.setItem('pde-update-dismissed', info.version) } catch { /* ignore */ }
   }
-  // listen for real download progress / completion from Electron main process
+  // listen for progress — direct install, no manual second step when auto-update is ON
   if (isDesktop && window.botimUpdater.onStatus) {
     window.botimUpdater.onStatus(async (p) => {
-      if (p.type === 'progress') prog.textContent = `Updating directly… ${p.percent}%${p.total ? ` (${(p.downloaded/1048576).toFixed(1)}/${(p.total/1048576).toFixed(1)} MB)` : ''}`
+      if (p.type === 'progress') prog.textContent = `Installing… ${p.percent}%${p.total ? ` (${(p.downloaded/1048576).toFixed(1)}/${(p.total/1048576).toFixed(1)} MB)` : ''}`
       if (p.type === 'downloaded') {
-        // Direct install — no second click needed when auto-update is ON
+        // Direct install — auto-installs immediately when auto-update is ON
         if (isAutoUpdate()) {
-          prog.textContent = `Downloaded (${(p.size/1048576).toFixed(1)} MB) — installing directly…`
+          prog.textContent = `Installing…`
           updNow.textContent = 'Installing…'
           updNow.disabled = true
-          status('Installing update directly — app will restart…')
+          status('Installing update — app will restart…')
           try {
             const r = await window.botimUpdater.install()
             if (r && r.ok === false) throw new Error(r.error)
-          } catch (e) { prog.textContent = 'Install failed: ' + e.message; updNow.disabled = false; updNow.textContent = '🔄 Retry Update' }
+          } catch (e) { prog.textContent = 'Install failed: ' + e.message; updNow.disabled = false; updNow.textContent = '🔄 Retry Install' }
           return
         }
-        prog.textContent = `Downloaded installer (${(p.size/1048576).toFixed(1)} MB) — ready to update`
-        updNow.textContent = '🔄 Restart & Update'
+        prog.textContent = `Ready to install`
+        updNow.textContent = '🔄 Install Now'
         updNow.disabled = false
         updNow.onclick = async () => {
           status('Installing update — the app will close and reopen…')
           const r = await window.botimUpdater.install()
           if (r && r.ok === false) status('Install failed: ' + r.error)
         }
-        status('Update downloaded — click "Restart & Update" to install')
+        status('Update ready — click Install Now')
       }
       if (p.type === 'error') prog.textContent = 'Update error: ' + p.message
     })
@@ -250,16 +250,16 @@ window.addEventListener('load', () => setTimeout(() => checkForUpdates(false), 4
     if (info) {
       const { showInfo } = await import('./pro-core.js')
       const isAuto = !!(window.botimUpdater && window.desktop?.isDesktop)
-      const body = showInfo('Update Available', `<div style="font-size:12px;line-height:1.8;">A new version is ready:<br/><b>v${info.version}</b> (installed: v${APP_VERSION})<br/>${info.notes || ''}<br/><small style="color:#94a3b8;">${isAuto ? 'Click Update Now — downloads in background, then Restart (no reinstall).' : 'Click Download, then run the Setup file to upgrade.'}</small></div>`)
+      const body = showInfo('Update Available', `<div style="font-size:12px;line-height:1.8;">A new version is ready:<br/><b>v${info.version}</b> (installed: v${APP_VERSION})<br/>${info.notes || ''}<br/><small style="color:#94a3b8;">${isAuto ? 'Click Install — installs directly and restarts.' : 'Click Download, then run the Setup file to upgrade.'}</small></div>`)
       const ok = document.getElementById('actionOk')
-      ok.textContent = isAuto ? '⬇️ Update Now' : '⬇️ Download'
+      ok.textContent = isAuto ? '🔄 Install Update' : '⬇️ Download'
       ok.onclick = async () => {
         document.getElementById('actionModal').classList.add('hidden')
-        status('Resolving download…')
+        status('Preparing install…')
         const exeUrl = await resolveExeUrl(info)
         if (isAuto) {
-          try { const r = await window.botimUpdater.download(exeUrl); if (r && r.ok === false) throw new Error(r.error); status('Downloading installer to your Downloads folder… see the green banner') }
-          catch (e) { status('Auto-download failed, opening real download: ' + e.message); window.botimUpdater.openUrl(exeUrl) }
+          try { const ok2 = await autoUpdateNow(info); if (!ok2) throw new Error('install failed') }
+          catch (e) { status('Direct install failed, opening download: ' + e.message); window.botimUpdater.openUrl(exeUrl) }
         } else {
           const a = document.createElement('a'); a.href = exeUrl; a.download = exeUrl.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'; a.rel='noopener'
           document.body.appendChild(a); a.click(); a.remove()
