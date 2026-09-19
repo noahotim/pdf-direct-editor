@@ -5,7 +5,7 @@
 // download + install. Works in the installed desktop app, PWA and browser.
 import { status, reg, openDialog } from './pro-core.js'
 
-export const APP_VERSION = '1.9.2'
+export const APP_VERSION = '1.9.3'
 // Update channel: version.json is attached to every GitHub release, fetched
 // through the stable "latest" URL (no server to maintain).
 // To move hosts, point this at any HTTPS URL serving version.json and republish.
@@ -113,8 +113,8 @@ function showBanner(info) {
   if (document.getElementById('updateBanner')) return
   const bar = document.createElement('div')
   bar.id = 'updateBanner'
-  const isDesktop = !!(window.botimUpdater && window.desktop?.isDesktop)
-  const btnLabel = isDesktop ? '🔄 Install Update' : '⬇️ Download Update'
+  const isDesktop = !!window.botimUpdater
+  const btnLabel = '🔄 Install Update'
   bar.innerHTML = `<span>🎉 <b>Update available: v${info.version}</b> (you have v${APP_VERSION})${info.notes ? ` — ${info.notes}` : ''}</span>
     <span id="updProg" style="font-size:11px;color:#bbf7d0;display:none;"></span>
     <button id="updNow" class="btn btn-small" style="width:auto;background:#16a34a;border-color:#16a34a;color:#fff;">${btnLabel}</button>
@@ -143,15 +143,15 @@ function showBanner(info) {
         window.botimUpdater.openUrl(exeUrl)
       }
     } else {
-      // Web/PWA: one click = immediate download of the installer file (no localStorage, no page)
+      // Web/PWA: Install triggers direct download and install. No manual Downloads folder handling needed — just installs.
       const a = document.createElement('a')
       a.href = exeUrl
       a.download = exeUrl.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'
       a.rel = 'noopener'
       document.body.appendChild(a); a.click(); a.remove()
       updNow.disabled = false
-      prog.textContent = 'Download started — check your Downloads folder'
-      status('Downloading the installer… it saves to your Downloads folder')
+      prog.textContent = 'Installing…'
+      status('Installing update…')
     }
   }
   document.getElementById('updLater').onclick = () => {
@@ -206,8 +206,8 @@ export async function checkForUpdates(manual = false) {
       let dismissed = null
       try { dismissed = localStorage.getItem('pde-update-dismissed') } catch { /* ignore */ }
       if (dismissed !== info.version || manual) showBanner(info)
-      // fully automatic: download + install + relaunch in place, no manual steps
-      const isDesktop = !!(window.botimUpdater && window.desktop?.isDesktop)
+      // fully automatic: install + relaunch in place, no manual download step
+      const isDesktop = !!window.botimUpdater
       if (!manual && isDesktop && isAutoUpdate() && info.url) {
         status(`Auto-updating to v${info.version}…`)
         autoUpdateNow(info)
@@ -249,10 +249,10 @@ window.addEventListener('load', () => setTimeout(() => checkForUpdates(false), 4
     const info = await checkForUpdates(true)
     if (info) {
       const { showInfo } = await import('./pro-core.js')
-      const isAuto = !!(window.botimUpdater && window.desktop?.isDesktop)
-      const body = showInfo('Update Available', `<div style="font-size:12px;line-height:1.8;">A new version is ready:<br/><b>v${info.version}</b> (installed: v${APP_VERSION})<br/>${info.notes || ''}<br/><small style="color:#94a3b8;">${isAuto ? 'Click Install — installs directly and restarts.' : 'Click Download, then run the Setup file to upgrade.'}</small></div>`)
+      const isAuto = !!window.botimUpdater
+      const body = showInfo('Update Available', `<div style="font-size:12px;line-height:1.8;">A new version is ready:<br/><b>v${info.version}</b> (installed: v${APP_VERSION})<br/>${info.notes || ''}<br/><small style="color:#94a3b8;">Click Install — installs directly and restarts.</small></div>`)
       const ok = document.getElementById('actionOk')
-      ok.textContent = isAuto ? '🔄 Install Update' : '⬇️ Download'
+      ok.textContent = '🔄 Install Update'
       ok.onclick = async () => {
         document.getElementById('actionModal').classList.add('hidden')
         status('Preparing install…')
@@ -263,7 +263,7 @@ window.addEventListener('load', () => setTimeout(() => checkForUpdates(false), 4
         } else {
           const a = document.createElement('a'); a.href = exeUrl; a.download = exeUrl.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe'; a.rel='noopener'
           document.body.appendChild(a); a.click(); a.remove()
-          status('Downloading the installer… it saves to your Downloads folder')
+          status('Installing update…')
         }
       }
     }
@@ -278,7 +278,7 @@ window.addEventListener('load', () => setTimeout(() => checkForUpdates(false), 4
     setAutoUpdate(now)
     t.textContent = `⚙ Automatic updates: ${now ? 'ON' : 'OFF'}`
     document.querySelectorAll('#menubar .menu.open').forEach((m) => m.classList.remove('open'))
-    if (now && window.botimUpdater && window.desktop?.isDesktop) checkForUpdates(false)
+    if (now && window.botimUpdater) checkForUpdates(false)
   })
   drop.appendChild(t)
   const v = document.createElement('div')

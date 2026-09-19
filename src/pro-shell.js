@@ -318,7 +318,7 @@ function showShortcuts() {
 }
 function showAbout() {
   showInfo('About', `<div style="font-size:12px;line-height:1.8;">
-    <b>BOTIM DOCSHUB v1.9.2</b><br/>Developed by <b>Otim Noah</b><br/>
+    <b>BOTIM DOCSHUB v1.9.3</b><br/>Developed by <b>Otim Noah</b><br/>
     Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
     Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }
