@@ -1111,6 +1111,37 @@ function buildCommands() {
     { label: 'Apply Redactions', hint: 'Tools', run: () => document.querySelector('#menubar [data-act="red-apply"]')?.click() },
     { label: 'Metadata', hint: 'Tools', run: () => document.querySelector('#menubar [data-act="metadata"]')?.click() },
     { label: 'Check for Updates', hint: 'Help', run: () => document.querySelector('#menubar [data-act="upd-check"]')?.click() },
+    // ── Word studio (Microsoft fidelity + beyond) ──
+    { label: 'Word: New Document', hint: 'Word', run: () => window.__botimWord?.applyCommand('insertPageBreak') || document.querySelector('#menubar [data-act="docs-new-word"]')?.click() },
+    { label: 'Word: Page Size A4', hint: 'Word', run: () => window.__botimWord?.applyCommand('pageSize', { size: 'A4' }) },
+    { label: 'Word: Page Size Letter', hint: 'Word', run: () => window.__botimWord?.applyCommand('pageSize', { size: 'Letter' }) },
+    { label: 'Word: Insert Page Break', hint: 'Word', run: () => window.__botimWord?.applyCommand('insertPageBreak') },
+    { label: 'Word: Insert Table', hint: 'Word', run: () => window.__botimWord?.applyCommand('insertTable', { rows: 3, cols: 3 }) },
+    { label: 'Word: Insert Image', hint: 'Word', run: () => window.__botimWord?.applyCommand('insertImage', { dataUrl: prompt('Image URL or data URL:') || '' }) },
+    { label: 'Word: Make Professional', hint: 'Word AI', run: () => window.__botimWord?.applyCommand('aiMakeProfessional') },
+    { label: 'Word: AI Rewrite Selection', hint: 'Word AI', run: () => window.__botimWord?.applyCommand('aiRewrite', { tone: 'professional' }) },
+    { label: 'Word: AI Summarize', hint: 'Word AI', run: () => window.__botimWord?.applyCommand('aiSummarize') },
+    { label: 'Word: Find & Replace', hint: 'Word', run: () => { const f=prompt('Find:'); if(f) window.__botimWord?.applyCommand('findReplace', { find: f, replace: prompt('Replace:')||'', replaceAll: confirm('Replace all?') }) } },
+    { label: 'Word: Table of Contents', hint: 'Word', run: () => window.__botimWord?.applyCommand('toc') },
+    { label: 'Word: Headers & Footers', hint: 'Word', run: () => { const h=prompt('Header text:'); if(h!==null) window.__botimWord?.applyCommand('header', { text: h }) } },
+    { label: 'Word: Page Numbers', hint: 'Word', run: () => window.__botimWord?.applyCommand('pageNumbers', { pageNumbers: true }) },
+    // ── PowerPoint studio ──
+    { label: 'PowerPoint: New Presentation', hint: 'PowerPoint', run: () => window.__botimPptx?.applyCommand('addSlide') },
+    { label: 'PowerPoint: Add Slide', hint: 'PowerPoint', run: () => window.__botimPptx?.applyCommand('addSlide') },
+    { label: 'PowerPoint: Duplicate Slide', hint: 'PowerPoint', run: () => window.__botimPptx?.applyCommand('duplicateSlide') },
+    { label: 'PowerPoint: Set Size 16:9', hint: 'PowerPoint', run: () => window.__botimPptx?.applyCommand('setSize', { size: '16:9' }) },
+    { label: 'PowerPoint: Add Shape', hint: 'PowerPoint', run: () => window.__botimPptx?.applyCommand('addShape', { type: 'rect' }) },
+    { label: 'PowerPoint: Generate Slide (AI)', hint: 'PowerPoint AI', run: () => window.__botimPptx?.applyCommand('generateSlide', { prompt: prompt('Slide prompt:')||'Growth' }) },
+    { label: 'PowerPoint: Make Consistent', hint: 'PowerPoint AI', run: () => window.__botimPptx?.applyCommand('makeConsistent') },
+    // ── Excel studio ──
+    { label: 'Excel: New Sheet', hint: 'Excel', run: () => window.__botimExcel?.applyCommand('addSheet') },
+    { label: 'Excel: Freeze Panes', hint: 'Excel', run: () => window.__botimExcel?.applyCommand('freezePanes', { range: 'A2' }) },
+    { label: 'Excel: Filter', hint: 'Excel', run: () => window.__botimExcel?.applyCommand('filter', { range: 'A1:Z100' }) },
+    { label: 'Excel: Insert Chart', hint: 'Excel', run: () => window.__botimExcel?.applyCommand('chart', { type: 'bar' }) },
+    { label: 'Excel: AI Explain Formula', hint: 'Excel AI', run: () => window.__botimExcel?.applyCommand('aiExplainFormula', { ref: prompt('Cell ref (e.g. A1):')||'A1' }) },
+    { label: 'Excel: Clean Data', hint: 'Excel AI', run: () => window.__botimExcel?.applyCommand('cleanData') },
+    { label: 'Excel: Insights', hint: 'Excel AI', run: () => window.__botimExcel?.applyCommand('insights') },
+    { label: 'Excel: To Professional Report', hint: 'Excel AI', run: () => window.__botimExcel?.applyCommand('toReport') },
   ]
 }
 // — Modern powerful palette: fuzzy search, keyboard-first, 60fps

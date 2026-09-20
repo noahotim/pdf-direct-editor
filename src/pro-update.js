@@ -6,7 +6,7 @@
 import { status, reg } from './pro-core.js'
 
 
-export const APP_VERSION = '2.0.0'
+export const APP_VERSION = '2.1.0'
 export const UPDATE_JSON_URL = 'https://github.com/noahotim/pdf-direct-editor/releases/latest/download/version.json'
 export const RELEASES_PAGE = 'https://github.com/noahotim/pdf-direct-editor/releases/latest'
 
