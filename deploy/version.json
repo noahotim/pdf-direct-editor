@@ -1,9 +1,9 @@
 {
-  "version": "2.1.0",
+  "version": "2.1.1",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v2.1.0/BOTIM-DOCSHUB-Setup-2.1.0.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v2.1.0/BOTIM-DOCSHUB-Portable-2.1.0.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v2.1.1/BOTIM-DOCSHUB-Setup-2.1.1.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v2.1.1/BOTIM-DOCSHUB-Portable-2.1.1.zip",
   "released": "2026-09-14",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 2.1.0 — Word/PPT/Excel Microsoft fidelity + beyond + integrated palette — best editor"
+  "notes": "BOTIM DOCSHUB 2.1.1 - Fix upper tabs menu (always on top when scrolling, words clearly visible)"
 }

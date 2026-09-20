@@ -84,15 +84,15 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;c
 .info{font-size:11px;color:var(--muted);padding:8px;background:#020617;border-radius:8px;border:1px solid var(--border)}
 @media(max-width:900px){.toolbar{width:200px}.props{display:none}}
 /* ===== Professional shell (menus, tabs, status, panels) ===== */
-.menubar{display:flex;align-items:center;gap:2px;background:linear-gradient(180deg,#020617 0%,#0f172a 100%);border-bottom:1px solid var(--border);padding:0 8px;position:relative;z-index:60;overflow-x:auto;scrollbar-width:none;backdrop-filter:blur(8px)}
+.menubar{display:flex;align-items:center;gap:2px;background:linear-gradient(180deg,#020617 0%,#0f172a 100%);border-bottom:1px solid var(--border);padding:0 8px;position:sticky;top:0;z-index:90;overflow:visible;backdrop-filter:blur(8px)}
 .menubar::-webkit-scrollbar{display:none}
-.menu{position:relative;flex-shrink:0}
+.menu{position:relative;flex-shrink:0;z-index:91}
 .menu-btn{background:transparent;border:1px solid transparent;color:var(--text);padding:8px 12px;font-size:13px;cursor:pointer;border-radius:8px;transition:all 0.15s ease;position:relative}
 .menu-btn:hover{background:#1e293b;border-color:#334155;transform:translateY(-1px)}
 .menu-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .menu.open .menu-btn{background:#1e293b;border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(59,130,246,0.3)}
 .menu-btn[aria-expanded="true"]{background:#1e293b}
-.menu-drop{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:280px;background:#1e293b;border:1px solid var(--border);border-radius:12px;padding:8px;box-shadow:0 16px 48px rgba(0,0,0,.6),0 4px 16px rgba(0,0,0,.4);animation:menuIn 0.15s ease;backdrop-filter:blur(12px)}
+.menu-drop{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:280px;background:#1e293b;border:1px solid var(--border);border-radius:12px;padding:8px;box-shadow:0 16px 48px rgba(0,0,0,.6),0 4px 16px rgba(0,0,0,.4);animation:menuIn 0.15s ease;backdrop-filter:blur(12px);z-index:95}
 .menu.open .menu-drop{display:block}
 @keyframes menuIn{from{opacity:0;transform:translateY(-8px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 .menu-drop button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:8px 12px;font-size:13px;border-radius:8px;cursor:pointer;transition:all 0.12s ease}
