@@ -1113,45 +1113,107 @@ function buildCommands() {
     { label: 'Check for Updates', hint: 'Help', run: () => document.querySelector('#menubar [data-act="upd-check"]')?.click() },
   ]
 }
+// — Modern powerful palette: fuzzy search, keyboard-first, 60fps
+function fuzzyScore(query, text) {
+  query = query.toLowerCase().trim(); text = text.toLowerCase()
+  if (!query) return 1
+  let qi = 0, score = 0, consecutive = 0, lastPos = -2
+  for (let ti = 0; ti < text.length && qi < query.length; ti++) {
+    if (text[ti] === query[qi]) {
+      const isConsecutive = ti === lastPos + 1
+      const isWordStart = ti === 0 || /[\s\/\-_:.]/.test(text[ti - 1])
+      score += (isConsecutive ? 5 : 0) + (isWordStart ? 3 : 1) + (1 / (ti + 1))
+      consecutive = isConsecutive ? consecutive + 1 : 1
+      lastPos = ti; qi++
+    } else { consecutive = 0 }
+  }
+  return qi === query.length ? score + (query.length / text.length) : 0
+}
+function highlightMatch(label, query) {
+  if (!query) return label
+  const q = query.toLowerCase(), l = label.toLowerCase()
+  let res = '', qi = 0
+  for (let i = 0; i < label.length; i++) {
+    if (qi < q.length && l[i] === q[qi]) { res += `<mark style="background:#3b82f6;color:white;padding:0 1px;border-radius:2px;">${label[i]}</mark>`; qi++ }
+    else res += label[i]
+  }
+  return res
+}
 function togglePalette(force) {
   let pal = document.getElementById('cmdPalette')
   if (pal && force !== true) { pal.remove(); return }
   if (!pal) {
     pal = document.createElement('div')
     pal.id = 'cmdPalette'
-    pal.innerHTML = `<input id="cmdInput" placeholder="Type a command… (Esc closes)" /><div id="cmdList"></div>`
+    pal.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(2,6,23,0.65);backdrop-filter:blur(8px);z-index:200;" id="cmdBackdrop"></div>
+      <div style="position:fixed;top:14vh;left:50%;transform:translateX(-50%);width:640px;max-width:92vw;background:#0f172a;border:1px solid #334155;border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,0.6);z-index:201;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #1e293b;">
+          <span style="color:#38bdf8;">⌘</span>
+          <input id="cmdInput" placeholder="Type a command or search…  (Ctrl+K / Ctrl+Shift+P)" style="flex:1;background:transparent;border:none;outline:none;color:#e2e8f0;font-size:15px;" autocomplete="off" />
+          <span style="font-size:11px;color:#475569;border:1px solid #334155;padding:2px 6px;border-radius:6px;">ESC</span>
+        </div>
+        <div id="cmdList" style="max-height:380px;overflow:auto;padding:8px;"></div>
+        <div style="display:flex;gap:12px;padding:8px 12px;border-top:1px solid #1e293b;font-size:11px;color:#64748b;">
+          <span>↑↓ Navigate</span><span>↵ Run</span><span>ESC Close</span><span style="margin-left:auto;">BOTIM DOCSHUB • ${buildCommands().length} commands</span>
+        </div>
+      </div>`
     document.body.appendChild(pal)
+    pal.querySelector('#cmdBackdrop').onclick = () => pal.remove()
   }
   const inp = pal.querySelector('#cmdInput'), list = pal.querySelector('#cmdList')
   const cmds = buildCommands()
-  const draw = (f) => {
+  let sel = 0
+  let filtered = [...cmds]
+  const draw = (q) => {
+    const query = (q || '').trim()
+    if (query) {
+      filtered = cmds.map(c => ({ c, s: Math.max(fuzzyScore(query, c.label), fuzzyScore(query, c.label + ' ' + c.hint) * 0.9, c.label.toLowerCase().includes(query.toLowerCase()) ? 2 : 0) }))
+        .filter(x => x.s > 0).sort((a,b) => b.s - a.s).map(x => x.c)
+    } else filtered = [...cmds]
     list.innerHTML = ''
-    cmds.filter((c) => (c.label + ' ' + c.hint).toLowerCase().includes(f.toLowerCase())).slice(0, 14).forEach((c) => {
+    if (!filtered.length) { list.innerHTML = `<div style="padding:24px;text-align:center;color:#64748b;">No commands match "${query}"</div>`; return }
+    filtered.slice(0, 16).forEach((c, i) => {
       const d = document.createElement('div')
       d.className = 'sr-item'
-      d.innerHTML = `<b>${c.label}</b> <small style="color:#94a3b8;">${c.hint}</small>`
+      d.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;cursor:pointer;${i===sel?'background:#1e293b;border:1px solid #334155;':''}`
+      d.innerHTML = `<span><b style="color:${i===sel?'#38bdf8':'#e2e8f0'}">${highlightMatch(c.label, query)}</b> <small style="color:#64748b;">${c.hint}</small></span><span style="font-size:11px;color:#475569;">↵</span>`
       d.onclick = () => { pal.remove(); c.run() }
+      d.onmouseenter = () => { sel = i; draw(query) }
       list.appendChild(d)
     })
-    const first = list.querySelector('.sr-item')
-    if (first && f) first.style.background = '#1e293b'
+    // auto-scroll selected into view
+    const active = list.children[sel]
+    if (active) active.scrollIntoView({ block: 'nearest' })
   }
   inp.value = ''
+  sel = 0
   draw('')
-  inp.focus()
-  inp.oninput = () => draw(inp.value)
+  setTimeout(() => inp.focus(), 0)
+  inp.oninput = () => { sel = 0; draw(inp.value) }
   inp.onkeydown = (e) => {
-    if (e.key === 'Enter') { const f = list.querySelector('.sr-item'); if (f) { pal.remove(); f.click() } }
-    if (e.key === 'Escape') pal.remove()
+    if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, Math.min(filtered.length,16)-1); draw(inp.value) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); draw(inp.value) }
+    else if (e.key === 'Enter') { const c = filtered[sel]; if (c) { pal.remove(); c.run() } }
+    else if (e.key === 'Escape') pal.remove()
   }
+  // close on outside click handled by backdrop
 }
 document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+  const isK = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'
+  const isP = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p'
+  if (isK || isP) {
     const tag = (e.target.tagName || '').toLowerCase()
-    if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return
+    const inInput = tag === 'input' || tag === 'textarea' || e.target.isContentEditable
+    // Allow Ctrl+K/Ctrl+Shift+P even in inputs for power users, but not when typing a single char
+    if (inInput && !isP && e.key.toLowerCase() === 'k') {
+      // Only block plain Ctrl+K inside text fields if user is typing
+      if (e.target.value !== undefined) return
+    }
     e.preventDefault()
     togglePalette()
   }
+  if (e.key === 'F1' && !e.ctrlKey) { e.preventDefault(); togglePalette(true) }
 })
 async function smartSearchDlg() {
   const r = await openDialog('Smart Search (local index + related terms)', [{ key: 'q', label: 'Search', value: '' }], 'Search')
