@@ -95,7 +95,27 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;c
 .menu-dev{margin-left:auto;font-size:11px;color:#38bdf8}
 #recoverBar{display:flex;gap:10px;align-items:center;justify-content:center;background:#451a03;border-bottom:1px solid #9a3412;color:#fed7aa;font-size:13px;padding:7px}
 #recoverBar.hidden{display:none}
-#updateBanner{display:flex;gap:10px;align-items:center;justify-content:center;background:#052e16;border-bottom:1px solid #16a34a;color:#bbf7d0;font-size:13px;padding:8px;position:relative;z-index:55}
+#updateBanner {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  background: linear-gradient(90deg, #052e16, #064e3b);
+  border-bottom: 1px solid #16a34a;
+  color: #bbf7d0;
+  font-size: 13px;
+  padding: 9px 16px;
+  position: relative;
+  z-index: 70;
+  animation: slideDown 0.35s ease;
+}
+
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
 /* ===== intelligence workspace ===== */
 .sec-link{color:#38bdf8;text-decoration:none}
 .sec-link:hover{text-decoration:underline}

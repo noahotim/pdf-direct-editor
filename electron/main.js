@@ -112,33 +112,51 @@ ipcMain.on('botim:rendererReady', (e) => {
   if (pendingFile) { e.sender.send('botim:openFile', pendingFile); pendingFile = null }
 })
 
-// ===== custom auto-update: downloads the REAL Setup.exe from GitHub and runs it (no localStorage) =====
-function setupUpdater(){
-  let installerPath = null
+function setupUpdater() {  let installerPath = null
 
-  // Download the given URL (follows GitHub redirects) to a temp .exe, streaming progress to the renderer.
+
   ipcMain.handle('botim:download', async (event, url) => {
     try {
-      if (!url || !/^https?:\/\//i.test(url)) return { ok:false, error:'No valid download URL (version.json missing url)' }
-      // Download into the app's own update cache (like opencode) — not the user's Downloads folder
-      let dir = path.join(app.getPath('userData'), 'update')
-      try { fs.mkdirSync(dir, { recursive: true }) } catch { dir = os.tmpdir() }
-      const clean = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe')
-      const file = path.join(dir, clean.toLowerCase().endsWith('.exe') ? clean : 'BOTIM-DOCSHUB-Setup.exe')
+      if (!url || !/^https?:\/\//i.test(url)) {
+        return { ok: false, error: 'Invalid download URL' }
+      }
+
+
+      const dir = path.join(app.getPath('userData'), 'update')
+      fs.mkdirSync(dir, { recursive: true })
+
+
+      const cleanName = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'BOTIM-DOCSHUB-Setup.exe')
+      const file = path.join(dir, cleanName.toLowerCase().endsWith('.exe') ? cleanName : 'BOTIM-DOCSHUB-Setup.exe')
+
+
       try { fs.unlinkSync(file) } catch {}
+
+
       await new Promise((resolve, reject) => {
-        const req = net.request({ method:'GET', url, redirect:'follow' })
+        const req = net.request({ method: 'GET', url, redirect: 'follow' })
         req.on('response', (res) => {
           if (res.statusCode >= 400) return reject(new Error('HTTP ' + res.statusCode))
+
+
           const total = parseInt(res.headers['content-length'] || '0', 10)
           let got = 0
           const out = fs.createWriteStream(file)
+
+
           out.on('error', reject)
           res.on('data', (chunk) => {
             got += chunk.length
             out.write(chunk)
             const pct = total ? Math.round((got / total) * 100) : 0
-            try { event.sender.send('botim:updateStatus', { type:'progress', percent: pct, downloaded: got, total }) } catch {}
+            try {
+              event.sender.send('botim:updateStatus', {
+                type: 'progress',
+                percent: pct,
+                downloaded: got,
+                total
+              })
+            } catch {}
           })
           res.on('end', () => out.end(() => resolve()))
           res.on('error', reject)
@@ -146,36 +164,64 @@ function setupUpdater(){
         req.on('error', reject)
         req.end()
       })
+
+
       const size = fs.existsSync(file) ? fs.statSync(file).size : 0
-      if (size < 500000) return { ok:false, error:`Downloaded file too small (${size} bytes) — not an installer` }
+      if (size < 400000) {
+        return { ok: false, error: `Downloaded file too small (${size} bytes)` }
+      }
+
+
       installerPath = file
-      try { event.sender.send('botim:updateStatus', { type:'downloaded', path: file, size }) } catch {}
-      return { ok:true, path:file, size }
-    } catch (e) { return { ok:false, error:String(e && e.message || e) } }
+      try {
+        event.sender.send('botim:updateStatus', { type: 'downloaded', path: file, size })
+      } catch {}
+
+
+      return { ok: true, path: file, size }
+    } catch (e) {
+      return { ok: false, error: String(e?.message || e) }
+    }
   })
 
-  // Run the downloaded installer silently, then exit so files unlock.
-  // The installer (per-user, no UAC) replaces files and relaunches the app itself.
+
   ipcMain.handle('botim:install', async () => {
     try {
-      if (!installerPath || !fs.existsSync(installerPath)) return { ok:false, error:'No downloaded installer found' }
-      const child = spawn(installerPath, ['/S'], { detached:true, stdio:'ignore' })
+      if (!installerPath || !fs.existsSync(installerPath)) {
+        return { ok: false, error: 'No installer found in cache' }
+      }
+
+
+      const child = spawn(installerPath, ['/S'], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      })
       child.unref()
-      // give the installer a moment, then force-exit so the .exe is unlocked
-      setTimeout(() => { try { app.exit(0) } catch { app.quit() } }, 1200)
-      return { ok:true }
-    } catch (e) { return { ok:false, error:String(e && e.message || e) } }
+
+
+      setTimeout(() => {
+        try { app.exit(0) } catch { app.quit() }
+      }, 1400)
+
+
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: String(e?.message || e) }
+    }
   })
 
-  // Fallback: open a URL in the system browser (real GitHub download page)
-  ipcMain.handle('botim:openUrl', (e, url) => { try { shell.openExternal(url) } catch {} ; return { ok:true } })
 
-  // File-association: read a file dropped/opened via OS double-click and return its bytes to the renderer
-  ipcMain.handle('botim:readFile', async (_e, filePath) => {
-    try {
-      const data = await fs.promises.readFile(filePath)
-      // transfer as base64 to avoid IPC ArrayBuffer issues
-      return { ok:true, name: path.basename(filePath), b64: data.toString('base64') }
-    } catch (err) { return { ok:false, error:String(err.message||err) } }
+  ipcMain.handle('botim:openUrl', (_e, url) => {
+    try { shell.openExternal(url) } catch {}
+    return { ok: true }
   })
 }
+
+// File-association: kept outside setupUpdater to preserve OS double-click open
+ipcMain.handle('botim:readFile', async (_e, filePath) => {
+  try {
+    const data = await fs.promises.readFile(filePath)
+    return { ok: true, name: path.basename(filePath), b64: data.toString('base64') }
+  } catch (err) { return { ok: false, error: String(err.message || err) } }
+})
