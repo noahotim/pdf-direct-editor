@@ -312,13 +312,13 @@ async function showRecent() {
 // ---- help ----
 function showShortcuts() {
   showInfo('Keyboard Shortcuts', `<div style="font-size:12px;line-height:1.9;">
-    <b>Ctrl+S</b> Save &bull; <b>Ctrl+F</b> Find &bull; <b>Ctrl+P</b> Print &bull; <b>Ctrl+Z</b> Undo &bull; <b>Ctrl+Y</b> Redo<br/>
-    <b>Ctrl+C / V / D</b> Copy / Paste / Duplicate &bull; <b>Del</b> Delete selected &bull; <b>Arrows</b> Nudge selected<br/>
-    Press <b>Esc</b> to close dialogs.</div>`)
+    <b>Ctrl+S</b> Save (PDF / Word / PowerPoint / Excel) &bull; <b>Ctrl+P</b> Print &bull; <b>Ctrl+Z</b> Undo &bull; <b>Ctrl+Y</b> Redo &bull; <b>Ctrl+F</b> Find<br/>
+    <b>Ctrl+B / I / U</b> Bold / Italic / Underline (Word) &bull; <b>Ctrl+C / V / D</b> Copy / Paste / Duplicate &bull; <b>Del</b> Delete &bull; <b>Arrows</b> Nudge<br/>
+    <b>Ctrl+K</b> Command Palette &bull; <b>Esc</b> Close dialogs &bull; <b>Enter</b> on welcome to continue</div>`)
 }
 function showAbout() {
   showInfo('About', `<div style="font-size:12px;line-height:1.8;">
-    <b>BOTIM DOCSHUB v1.9.3</b><br/>Developed by <b>Otim Noah</b><br/>
+    <b>BOTIM DOCSHUB v1.9.4</b><br/>Developed by <b>Otim Noah</b><br/>
     Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
     Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }
@@ -344,26 +344,50 @@ reg('about', showAbout)
 reg('pages-tab', () => showTab('pages'))
 reg('gotopage', () => { const fn = Actions['goto-page']; if (fn) fn() })
 
-// ---- global shortcuts (Ctrl+Z/Y/F already handled in main.js â€” do NOT duplicate) ----
+// ---- global shortcuts — works for PDF + Word + PowerPoint + Excel + all dialogs ----
 document.addEventListener('keydown', (e) => {
   const tag = (e.target.tagName || '').toLowerCase()
-  const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable
+  const inWordDoc = !!(e.target.closest && e.target.closest('.doc-page'))
+  const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable || inWordDoc
   if (e.key === 'Escape') { document.querySelectorAll('.modal:not(.hidden)').forEach((m) => m.classList.add('hidden')); return }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
     const k = e.key.toLowerCase()
-    if (k === 's') { e.preventDefault(); E().saveBtn.click() }
-    else if (k === 'p') { e.preventDefault(); const fn = Actions['print']; if (fn) fn() }
+    if (k === 's') {
+      e.preventDefault();
+      // Smart save: Word/PPT/Excel or PDF depending on active view
+      const isWord = document.getElementById('docWordCanvas')?.style.display !== 'none' && document.getElementById('docCanvasWrap')?.style.display !== 'none'
+      const isPpt = document.getElementById('docSlides')?.style.display !== 'none' && document.getElementById('docCanvasWrap')?.style.display !== 'none'
+      const isSheet = document.getElementById('sheetCanvas')?.style.display !== 'none' && document.getElementById('sheetCanvas')?.style.display !== ''
+      if (isWord) { document.getElementById('dSaveWord')?.click(); status('Saving Word (Ctrl+S)…') }
+      else if (isPpt) { document.getElementById('dSavePpt')?.click(); status('Saving PowerPoint (Ctrl+S)…') }
+      else if (isSheet) { document.getElementById('sheetSaveXlsx')?.click() || document.getElementById('sheetSave')?.click(); status('Saving spreadsheet (Ctrl+S)…') }
+      else E().saveBtn.click()
+    }
+    else if (k === 'p') { e.preventDefault(); const fn = Actions['print']; if (fn) fn(); else window.print() }
+    else if (k === 'z') { // Undo — works for PDF edits and Word contentEditable
+      if (inWordDoc) { /* let browser handle Word undo, but keep status */ return }
+      e.preventDefault(); E().undo && E().undo(); status('Undo (Ctrl+Z)')
+    }
+    else if (k === 'y') {
+      if (inWordDoc) return
+      e.preventDefault(); E().redo && E().redo(); status('Redo (Ctrl+Y)')
+    }
+    else if (k === 'f') { e.preventDefault(); document.getElementById('findModal')?.classList.remove('hidden'); document.getElementById('findInput')?.focus() }
+    else if (k === 'b' && inWordDoc) { e.preventDefault(); document.execCommand('bold', false, null) }
+    else if (k === 'i' && inWordDoc) { e.preventDefault(); document.execCommand('italic', false, null) }
+    else if (k === 'u' && inWordDoc) { e.preventDefault(); document.execCommand('underline', false, null) }
     else if (!typing && k === 'c') {
       const sel = window.getSelection()
-      if (sel && sel.toString().trim()) return // let browser copy the selected PDF/highlight text
+      if (sel && sel.toString().trim()) return
       e.preventDefault(); copySel()
     }
     else if (!typing && k === 'v') {
       const sel = window.getSelection()
-      if (sel && !E().selectedEl) return // let browser paste into focused text
+      if (sel && !E().selectedEl) return
       e.preventDefault(); pasteClip()
     }
     else if (!typing && k === 'd') { e.preventDefault(); copySel(); pasteClip() }
+    else if (k === 'k' && !typing) { e.preventDefault(); const fn = Actions['cmd-palette']; if (fn) fn() }
   } else if (!typing) {
     if (e.key === 'Delete' || e.key === 'Backspace') { if (E().removeSelected()) { e.preventDefault(); status('Deleted selection') } }
     else if (e.key.startsWith('Arrow') && E().selectedEl) {

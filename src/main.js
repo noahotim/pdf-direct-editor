@@ -95,7 +95,13 @@ document.getElementById('replaceOneBtn')?.addEventListener('click', ()=> replace
 document.getElementById('replaceAllBtn')?.addEventListener('click', ()=> replaceOne(true))
 document.getElementById('spellCheckBtn')?.addEventListener('click', ()=>{ if(!selectedEl) return status('Select text to spellcheck'); const ed=getEditForEl(selectedEl); if(ed && typeof ed.text==='string'){ selectedEl.setAttribute('spellcheck','true'); selectedEl.setAttribute('contenteditable','true'); selectedEl.focus(); status('Spellcheck on: text is editable in place — red underlines show misspellings') } })
 document.getElementById('addStyledTextBtn')?.addEventListener('click', ()=> addStyledText('plain'))
-document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key==='z'){ e.preventDefault(); undo() } if((e.ctrlKey||e.metaKey) && e.key==='y'){ e.preventDefault(); redo() } if((e.ctrlKey||e.metaKey) && e.key==='f'){ e.preventDefault(); document.getElementById('findModal').classList.remove('hidden') } })
+document.addEventListener('keydown', e=>{
+  const inWord = !!(e.target.closest && e.target.closest('.doc-page'))
+  if(inWord) return; // let pro-shell handle Word shortcuts (Ctrl+B/I/U/Z/Y) for contentEditable
+  if((e.ctrlKey||e.metaKey) && e.key==='z'){ e.preventDefault(); undo() }
+  if((e.ctrlKey||e.metaKey) && e.key==='y'){ e.preventDefault(); redo() }
+  if((e.ctrlKey||e.metaKey) && e.key==='f'){ e.preventDefault(); document.getElementById('findModal')?.classList.remove('hidden') }
+})
 
 function getEditForEl(el){ const id=el.dataset.id; return edits.find(x=> String(x.id)===String(id)) }
 function applyWordToSelected(clear=false){

@@ -120,17 +120,76 @@ async function exportText() {
   status(`Text exported (${(out.length / 1024).toFixed(1)} KB)`)
 }
 
-// ---------- print ----------
+// ---------- print (works for PDF + Word + PowerPoint + Excel) ----------
 async function doPrint() {
   const e = E()
-  if (!e.pdfDocProxy) return status('Open a PDF first')
+  const area = document.getElementById('printArea')
+  const isDocs = document.getElementById('docCanvasWrap')?.style.display !== 'none' && document.getElementById('docCanvasWrap')?.style.display !== ''
+  const isWord = isDocs && document.getElementById('docWordCanvas')?.style.display !== 'none'
+  const isPpt = isDocs && document.getElementById('docSlides')?.style.display !== 'none'
+  const isSheet = document.getElementById('sheetCanvas')?.style.display !== 'none' && document.getElementById('sheetCanvas')?.style.display !== ''
+  // Word / PPT / Excel printing — clone to printArea and print directly (no PDF needed)
+  if (isWord || isPpt || isSheet) {
+    const r = await openDialog('Print Document', [
+      { key: 'copies', label: 'Copies', type: 'number', value: 1, min: 1, max: 99 }
+    ], 'Print')
+    if (!r) return
+    area.innerHTML = ''
+    if (isWord) {
+      const pages = [...document.querySelectorAll('.doc-page')]
+      if (!pages.length) return status('No Word pages to print')
+      pages.forEach((p, i) => {
+        const clone = p.cloneNode(true)
+        clone.querySelectorAll('.doc-page-delete').forEach(el => el.remove())
+        clone.style.pageBreakAfter = i < pages.length - 1 ? 'always' : 'auto'
+        clone.style.boxShadow = 'none'; clone.style.margin = '0 auto 20px'; clone.style.display = 'block'
+        area.appendChild(clone)
+      })
+      status('Preparing Word print…')
+    } else if (isPpt) {
+      const slides = document.querySelectorAll('.slide-thumb')
+      if (!slides.length) return status('No slides to print')
+      // Use the actual slide data if available via render, otherwise print thumbnails
+      const titleEl = document.getElementById('slideTitle')
+      const bodyEl = document.getElementById('slideBody')
+      // Fallback: print the visible slide editor content
+      const wrap = document.createElement('div')
+      wrap.style.cssText = 'padding:20px;'
+      wrap.innerHTML = `<h1 style="font-size:28px;color:#1e3a8a;">${titleEl?.value || 'Presentation'}</h1><pre style="white-space:pre-wrap;font-family:Inter,sans-serif;font-size:14px;margin-top:12px;">${bodyEl?.value || ''}</pre>`
+      area.appendChild(wrap)
+      // Also add all slides if multiple
+      const docsState = window.__botimDocsState || null
+      if (docsState && Array.isArray(docsState.slides)) {
+        docsState.slides.forEach((s, idx) => {
+          if (idx === 0) return // already added active
+          const d = document.createElement('div')
+          d.style.cssText = 'page-break-before:always;padding:20px;border-top:2px solid #e2e8f0;margin-top:20px;'
+          d.innerHTML = `<h2 style="font-size:22px;color:#1e3a8a;">${s.title || 'Slide '+(idx+1)}</h2><pre style="white-space:pre-wrap;font-size:13px;">${s.body||''}</pre>`
+          area.appendChild(d)
+        })
+      }
+      status('Preparing PowerPoint print…')
+    } else if (isSheet) {
+      const grid = document.querySelector('.sheet-grid')
+      if (!grid) return status('No spreadsheet to print')
+      const clone = grid.cloneNode(true)
+      clone.style.fontSize = '10px'
+      area.appendChild(clone)
+      status('Preparing spreadsheet print…')
+    }
+    // Ensure print styles show content
+    area.style.background = 'white'; area.style.color = 'black'
+    window.print()
+    status('Print dialog opened — document printing')
+    return
+  }
+  if (!e.pdfDocProxy) return status('Open a document first to print')
   const r = await openDialog('Print', [
     { key: 'scope', label: 'Pages', type: 'select', value: 'all', options: ['All pages', 'Visible page'] },
     { key: 'scale', label: 'Render scale', type: 'number', value: 1.5, min: 0.5, max: 3 }
   ], 'Print')
   if (!r) return
   const idx = r.scope === 'All pages' ? [...Array(e.totalPages).keys()] : [e.visiblePageIndex()]
-  const area = document.getElementById('printArea')
   area.innerHTML = ''
   status('Preparing print…')
   for (const i of idx) {
