@@ -1,9 +1,9 @@
 {
-  "version": "1.9.4",
+  "version": "2.0.0",
   "name": "BOTIM DOCSHUB by Otim Noah",
-  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.9.4/BOTIM-DOCSHUB-Setup-1.9.4.exe",
-  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v1.9.4/BOTIM-DOCSHUB-Portable-1.9.4.zip",
+  "url": "https://github.com/noahotim/pdf-direct-editor/releases/download/v2.0.0/BOTIM-DOCSHUB-Setup-2.0.0.exe",
+  "zip": "https://github.com/noahotim/pdf-direct-editor/releases/download/v2.0.0/BOTIM-DOCSHUB-Portable-2.0.0.zip",
   "released": "2026-09-14",
   "minVersion": "1.0.0",
-  "notes": "BOTIM DOCSHUB 1.9.4 - All features perfect: keyboard shortcuts (Ctrl+S/P/Z/Y/F/B/I/U) and document printing (PDF/Word/PPT/Excel) fixed"
+  "notes": "BOTIM DOCSHUB 2.0.0 — Best in existence: perfect update system + powerhouse palette (Ctrl+K) + modern ribbon + 60fps virtualized + high-contrast + live previews"
 }

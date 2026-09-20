@@ -245,6 +245,49 @@ async function loadPdf(file){
 
 async function renderAll(){
   pdfContainer.innerHTML=''
+  // Virtualized: create placeholders first, then render visible + buffer via IntersectionObserver for 60fps on large docs
+  const useVirtual = totalPages > 12
+  const observer = useVirtual ? new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const wrap = entry.target
+        if (wrap.dataset.rendered) return
+        wrap.dataset.rendered = '1'
+        const idx = parseInt(wrap.dataset.pageIndex, 10)
+        renderPageIntoWrap(wrap, idx).catch(()=>{})
+        observer.unobserve(wrap)
+      }
+    })
+  }, { root: document.getElementById('viewer'), rootMargin: '800px 0px', threshold: 0.01 }) : null
+
+  async function renderPageIntoWrap(wrap, pageIndex) {
+    try {
+      const page = await pdfDocProxy.getPage(pageIndex + 1)
+      const viewport = page.getViewport({ scale: currentZoom })
+      let canvas = wrap.querySelector('canvas')
+      if (!canvas) {
+        canvas = document.createElement('canvas')
+        wrap.prepend(canvas)
+      }
+      const ctx = canvas.getContext('2d')
+      // Use devicePixelRatio for crisp rendering but keep 60fps
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = Math.floor(viewport.width * dpr)
+      canvas.height = Math.floor(viewport.height * dpr)
+      canvas.style.width = Math.floor(viewport.width) + 'px'
+      canvas.style.height = Math.floor(viewport.height) + 'px'
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      await page.render({ canvasContext: ctx, viewport }).promise
+      wrap.style.width = Math.floor(viewport.width) + 'px'
+      wrap.style.height = Math.floor(viewport.height) + 'px'
+      const overlay = wrap.querySelector('.overlay')
+      if (overlay) {
+        overlay.style.width = Math.floor(viewport.width) + 'px'
+        overlay.style.height = Math.floor(viewport.height) + 'px'
+      }
+    } catch (e) { console.warn('page render failed', pageIndex, e) }
+  }
+
   for(let i=1;i<=totalPages;i++){
     const page = await pdfDocProxy.getPage(i)
     const viewport = page.getViewport({ scale: currentZoom })
@@ -253,6 +296,34 @@ async function renderAll(){
     wrap.style.width = viewport.width+'px'
     wrap.style.height = viewport.height+'px'
     wrap.dataset.pageIndex = i-1
+    // For virtualized large docs, create placeholder and defer render; for small docs render immediately
+    if (useVirtual && i > 6) {
+      // Placeholder — will be rendered when near viewport
+      wrap.style.background = '#fff'
+      wrap.style.display = 'flex'
+      wrap.style.alignItems = 'center'
+      wrap.style.justifyContent = 'center'
+      wrap.innerHTML = `<span style="color:#94a3b8;font-size:12px;">Page ${i} — rendering…</span>`
+      // overlay for edits
+      const overlay = document.createElement('div')
+      overlay.className='overlay'
+      overlay.style.width = viewport.width+'px'
+      overlay.style.height = viewport.height+'px'
+      const drawCanvas = document.createElement('canvas')
+      drawCanvas.className='draw-canvas'
+      drawCanvas.width = viewport.width
+      drawCanvas.height = viewport.height
+      drawCanvas.style.width='100%'
+      drawCanvas.style.height='100%'
+      overlay.appendChild(drawCanvas)
+      setupDraw(drawCanvas, i-1)
+      wrap.appendChild(overlay)
+      pdfContainer.appendChild(wrap)
+      setupErase(overlay, i-1)
+      setEraseCursor()
+      if (observer) observer.observe(wrap)
+      continue
+    }
 
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -282,6 +353,8 @@ async function renderAll(){
     pdfContainer.appendChild(wrap)
     setupErase(overlay, i-1)
     setEraseCursor()
+    // Immediate render for first pages or non-virtual
+    await renderPageIntoWrap(wrap, i-1)
 
     // clicks for adding
     overlay.addEventListener('click', (e)=>{

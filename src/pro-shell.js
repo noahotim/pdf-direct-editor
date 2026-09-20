@@ -3,21 +3,88 @@ import { E, status, Actions, reg, openDialog, showInfo, downloadBytes, pickFiles
 
 const $ = (s) => document.querySelector(s)
 
-// ---- menubar ----
-document.querySelectorAll('#menubar .menu').forEach((menu) => {
+// ---- modern adaptive ribbon — keyboard-first, 60fps, accessible ----
+const menubar = document.getElementById('menubar')
+if (menubar) menubar.setAttribute('role', 'menubar')
+// Click to open
+document.querySelectorAll('#menubar .menu').forEach((menu, idx) => {
   const btn = menu.querySelector('.menu-btn')
+  if (!btn) return
+  btn.setAttribute('role', 'menuitem')
+  btn.setAttribute('aria-haspopup', 'true')
+  btn.setAttribute('aria-expanded', 'false')
+  btn.setAttribute('tabindex', idx === 0 ? '0' : '-1')
   btn.addEventListener('click', (e) => {
     e.stopPropagation()
     const was = menu.classList.contains('open')
-    document.querySelectorAll('#menubar .menu.open').forEach((m) => m.classList.remove('open'))
-    if (!was) menu.classList.add('open')
+    document.querySelectorAll('#menubar .menu.open').forEach((m) => {
+      m.classList.remove('open')
+      m.querySelector('.menu-btn')?.setAttribute('aria-expanded', 'false')
+    })
+    if (!was) {
+      menu.classList.add('open')
+      btn.setAttribute('aria-expanded', 'true')
+      // focus first item for keyboard nav
+      const first = menu.querySelector('.menu-drop button')
+      if (first) setTimeout(() => first.focus(), 0)
+    }
+  })
+  btn.addEventListener('keydown', (e) => {
+    const menus = [...document.querySelectorAll('#menubar .menu')]
+    if (e.key === 'ArrowRight') { e.preventDefault(); const next = menus[(idx + 1) % menus.length].querySelector('.menu-btn'); next.focus() }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); const prev = menus[(idx - 1 + menus.length) % menus.length].querySelector('.menu-btn'); prev.focus() }
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); btn.click()
+    }
+    if (e.key === 'Escape') {
+      document.querySelectorAll('#menubar .menu.open').forEach(m => m.classList.remove('open'))
+      btn.blur()
+    }
   })
 })
-document.addEventListener('click', () => document.querySelectorAll('#menubar .menu.open').forEach((m) => m.classList.remove('open')))
+// Alt+letter accelerators + Esc
+document.addEventListener('keydown', (e) => {
+  if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+    const map = { f: 'file', e: 'edit', v: 'view', i: 'insert', t: 'tools', d: 'document', h: 'help', n: 'intel' }
+    const key = e.key.toLowerCase()
+    if (map[key]) {
+      const m = document.querySelector(`#menubar [data-menu="${map[key]}"]`)
+      if (m) { e.preventDefault(); m.querySelector('.menu-btn')?.click(); }
+    }
+  }
+})
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#menubar .menu')) document.querySelectorAll('#menubar .menu.open').forEach((m) => {
+    m.classList.remove('open')
+    m.querySelector('.menu-btn')?.setAttribute('aria-expanded', 'false')
+  })
+})
+// Menu item keyboard nav
+document.querySelectorAll('#menubar .menu-drop').forEach(drop => {
+  drop.setAttribute('role', 'menu')
+  drop.addEventListener('keydown', (e) => {
+    const items = [...drop.querySelectorAll('button:not([disabled])')]
+    const idx = items.indexOf(document.activeElement)
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length]?.focus() }
+    if (e.key === 'ArrowUp') { e.preventDefault(); items[(idx - 1 + items.length) % items.length]?.focus() }
+    if (e.key === 'Home') { e.preventDefault(); items[0]?.focus() }
+    if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus() }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      drop.closest('.menu')?.classList.remove('open')
+      drop.closest('.menu')?.querySelector('.menu-btn')?.focus()
+    }
+  })
+})
 document.querySelectorAll('#menubar [data-act]').forEach((b) => {
+  b.setAttribute('role', 'menuitem')
+  b.setAttribute('tabindex', '-1')
   b.title = b.textContent.trim()
   b.addEventListener('click', () => {
-    document.querySelectorAll('#menubar .menu.open').forEach((m) => m.classList.remove('open'))
+    document.querySelectorAll('#menubar .menu.open').forEach((m) => {
+      m.classList.remove('open')
+      m.querySelector('.menu-btn')?.setAttribute('aria-expanded', 'false')
+    })
     const fn = Actions[b.dataset.act]
     if (fn) fn(); else status(`Coming online: ${b.dataset.act}`)
   })
@@ -53,26 +120,209 @@ new MutationObserver(() => {
 }).observe(document.querySelector('.side-tabs'), { childList: true })
 export function showTab(name) { document.querySelector(`.side-tab[data-tab="${name}"]`)?.click() }
 
-// ---- theme ----
-if (localStorage.getItem('pde-theme') === 'light') document.body.classList.add('light')
+// ---- themes: dark / light / high-contrast — AAA accessible, customizable ----
+const THEMES = ['dark', 'light', 'high-contrast']
+let currentTheme = localStorage.getItem('pde-theme') || 'dark'
+if (currentTheme === 'light') document.body.classList.add('light')
+if (currentTheme === 'high-contrast') document.body.classList.add('high-contrast')
+function applyTheme(t) {
+  document.body.classList.remove('light', 'high-contrast')
+  if (t === 'light') document.body.classList.add('light')
+  if (t === 'high-contrast') document.body.classList.add('high-contrast')
+  localStorage.setItem('pde-theme', t)
+  currentTheme = t
+  // live preview: update status bar + announce for screen readers
+  const names = { dark: 'Dark — comfortable', light: 'Light — bright', 'high-contrast': 'High contrast — AAA' }
+  status(`Theme: ${names[t]}`)
+  // dispatch for other modules
+  document.dispatchEvent(new CustomEvent('themechange', { detail: t }))
+}
 function toggleTheme() {
-  document.body.classList.toggle('light')
-  localStorage.setItem('pde-theme', document.body.classList.contains('light') ? 'light' : 'dark')
-  status(document.body.classList.contains('light') ? 'Light theme — bright' : 'Dark theme — comfortable')
+  const next = THEMES[(THEMES.indexOf(currentTheme) + 1) % THEMES.length]
+  applyTheme(next)
 }
 document.getElementById('themeToggle')?.addEventListener('click', toggleTheme)
+// Keyboard shortcut: Ctrl+Shift+T cycles themes
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 't') {
+    e.preventDefault(); toggleTheme()
+  }
+})
 
-// ---- statusbar ----
+// ---- customizable panels — resizable, collapsible, persisted ----
+;(() => {
+  const sidebar = document.getElementById('sidebar')
+  const props = document.getElementById('propsPanel')
+  if (!sidebar) return
+  // Restore widths
+  try {
+    const w = localStorage.getItem('pde-panel-sidebar-w')
+    if (w) sidebar.style.width = w
+    const pw = localStorage.getItem('pde-panel-props-w')
+    if (pw && props) props.style.width = pw
+    const collapsed = localStorage.getItem('pde-panel-collapsed')
+    if (collapsed === 'sidebar' && sidebar) sidebar.style.display = 'none'
+  } catch {}
+  // Add collapse toggles
+  const addToggle = (panel, key, label) => {
+    if (!panel || panel.querySelector('.panel-toggle')) return
+    const btn = document.createElement('button')
+    btn.className = 'panel-toggle btn btn-small'
+    btn.textContent = '◀'
+    btn.title = `Collapse ${label} (double-click to restore)`
+    btn.style.cssText = 'position:absolute;top:8px;right:8px;width:auto;padding:2px 6px;font-size:10px;opacity:0.6;'
+    btn.onclick = () => {
+      const hidden = panel.style.display === 'none'
+      panel.style.display = hidden ? '' : 'none'
+      try { localStorage.setItem('pde-panel-collapsed', hidden ? '' : key) } catch {}
+      status(hidden ? `${label} restored` : `${label} collapsed — double-click menubar to restore`)
+    }
+    btn.ondblclick = () => {
+      panel.style.display = ''
+      try { localStorage.removeItem('pde-panel-collapsed') } catch {}
+    }
+    panel.style.position = 'relative'
+    panel.appendChild(btn)
+  }
+  addToggle(sidebar, 'sidebar', 'Sidebar')
+  if (props) addToggle(props, 'props', 'Properties')
+  // Resizable via drag handle
+  const makeResizable = (panel, key) => {
+    if (!panel) return
+    const handle = document.createElement('div')
+    handle.style.cssText = 'position:absolute;top:0;right:0;width:6px;height:100%;cursor:ew-resize;background:transparent;z-index:5;'
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault()
+      const startX = e.clientX, startW = panel.offsetWidth
+      const onMove = (ev) => {
+        const dw = ev.clientX - startX
+        const newW = Math.max(180, Math.min(520, startW + dw))
+        panel.style.width = newW + 'px'
+      }
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+        try { localStorage.setItem(key, panel.style.width) } catch {}
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
+    })
+    panel.appendChild(handle)
+  }
+  makeResizable(sidebar, 'pde-panel-sidebar-w')
+  if (props) makeResizable(props, 'pde-panel-props-w')
+  // Double-click menubar to restore collapsed
+  document.getElementById('menubar')?.addEventListener('dblclick', () => {
+    if (sidebar) sidebar.style.display = ''
+    if (props) props.style.display = ''
+    try { localStorage.removeItem('pde-panel-collapsed') } catch {}
+    status('Panels restored')
+  })
+})()
+
+// ---- context menus — right-click on pages/elements, live preview ----
+;(() => {
+  let menu = null
+  const hide = () => { if (menu) { menu.remove(); menu = null } }
+  document.addEventListener('click', hide)
+  document.addEventListener('contextmenu', (e) => {
+    const pageWrap = e.target.closest && e.target.closest('.page-wrap')
+    const editable = e.target.closest && e.target.closest('.editable-text,.editable-image,.shape,.thumb')
+    if (!pageWrap && !editable) return
+    // Don't interfere with native input context menus
+    const tag = (e.target.tagName || '').toLowerCase()
+    if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return
+    e.preventDefault()
+    hide()
+    menu = document.createElement('div')
+    menu.style.cssText = 'position:fixed;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,0.5);z-index:90;min-width:180px;'
+    const item = (label, fn) => {
+      const b = document.createElement('button')
+      b.textContent = label
+      b.style.cssText = 'display:block;width:100%;text-align:left;background:transparent;border:none;color:#e2e8f0;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13px;'
+      b.onmouseenter = () => b.style.background = '#334155'
+      b.onmouseleave = () => b.style.background = 'transparent'
+      b.onclick = () => { hide(); fn() }
+      menu.appendChild(b)
+    }
+    if (editable) {
+      item('✏️ Edit', () => editable.click())
+      item('⧉ Copy (Ctrl+C)', () => { const fn = Actions['copy']; if (fn) fn() })
+      item('🗑 Delete', () => { const fn = E().removeSelected?.bind(E()); if (fn) fn() })
+      item('⬆ Bring forward', () => document.getElementById('propsFwd')?.click())
+      item('⬇ Send backward', () => document.getElementById('propsBwd')?.click())
+    } else if (pageWrap) {
+      const idx = [...document.querySelectorAll('.page-wrap')].indexOf(pageWrap)
+      item(`📄 Page ${idx + 1} — Add text`, () => document.getElementById('addTextBtn')?.click())
+      item('🖼️ Add image', () => document.getElementById('imageInput')?.click())
+      item('🔍 OCR this page', () => document.querySelector('#menubar [data-act="ocr"]')?.click())
+      item('🖨️ Print page', () => { const fn = Actions['print']; if (fn) fn() })
+    }
+    item('🔍 Zoom in', () => { const fn = Actions['zin']; if (fn) fn() })
+    item('🔍 Zoom out', () => { const fn = Actions['zout']; if (fn) fn() })
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px'
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 260) + 'px'
+    document.body.appendChild(menu)
+  })
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu) hide() })
+})()
+
+// ---- live previews — hover page numbers/thumbnails for larger preview ----
+;(() => {
+  let tip = null
+  const show = (target, html) => {
+    if (!tip) {
+      tip = document.createElement('div')
+      tip.className = 'live-preview'
+      document.body.appendChild(tip)
+    }
+    tip.innerHTML = html
+    tip.classList.add('visible')
+    const r = target.getBoundingClientRect()
+    tip.style.left = Math.min(r.right + 12, window.innerWidth - 300) + 'px'
+    tip.style.top = Math.min(r.top, window.innerHeight - 180) + 'px'
+  }
+  const hide = () => { if (tip) tip.classList.remove('visible') }
+  document.addEventListener('mouseover', (e) => {
+    const thumb = e.target.closest && e.target.closest('.thumb')
+    if (thumb) {
+      const canvas = thumb.querySelector('canvas')
+      if (canvas) {
+        const dataUrl = canvas.toDataURL()
+        show(thumb, `<img src="${dataUrl}" style="width:200px;border-radius:6px;display:block;" /><small style="color:#94a3b8;">Page preview — click to jump</small>`)
+        return
+      }
+    }
+    const pageNum = e.target.closest && e.target.closest('#sbPage')
+    if (pageNum) {
+      const e2 = E()
+      if (e2 && e2.totalPages) show(pageNum, `<div style="font-size:12px;color:#e2e8f0;"><b>${e2.totalPages} pages</b> • ${Math.round(e2.currentZoom*100)}%<br/><small style="color:#94a3b8;">Scroll or use Go to Page (Ctrl+G)</small></div>`)
+    }
+  })
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest && (e.target.closest('.thumb') || e.target.closest('#sbPage'))) hide()
+  })
+})()
+
+// ---- clean status bar — live, polished, accessible ----
 setInterval(() => {
   try {
     const e = E()
-    $('#sbFile').textContent = window.__docName || 'No document'
-    $('#sbPage').textContent = e.totalPages ? `Page ${e.visiblePageIndex() + 1} / ${e.totalPages}` : 'â€”'
-    $('#sbZoom').textContent = Math.round(e.currentZoom * 100) + '%'
-    const n = e.edits.length
-    $('#sbCount').textContent = `${e.totalPages} pg â€¢ ${n} edit${n === 1 ? '' : 's'}${e.pagesToDelete.size ? ` â€¢ ${e.pagesToDelete.size} del` : ''}`
+    const file = window.__docName || 'No document'
+    const page = e.totalPages ? `Page ${e.visiblePageIndex() + 1} / ${e.totalPages}` : '—'
+    const zoom = Math.round((e.currentZoom || 1) * 100) + '%'
+    const n = e.edits ? e.edits.length : 0
+    const del = e.pagesToDelete ? e.pagesToDelete.size : 0
+    $('#sbFile').textContent = file
+    $('#sbFile').title = file
+    $('#sbPage').textContent = page
+    $('#sbZoom').textContent = zoom
+    $('#sbCount').textContent = `${e.totalPages || 0} pg • ${n} edit${n === 1 ? '' : 's'}${del ? ` • ${del} del` : ''}`
+    // live a11y
+    const bar = document.getElementById('statusbar')
+    if (bar) bar.setAttribute('aria-live', 'polite')
   } catch { /* core not ready */ }
-}, 1200)
+}, 700)
 
 // ---- doc name tracking + recent docs (IDB with bytes) + autosave ----
 async function recordRecent(file, bytes) {
@@ -318,7 +568,7 @@ function showShortcuts() {
 }
 function showAbout() {
   showInfo('About', `<div style="font-size:12px;line-height:1.8;">
-    <b>BOTIM DOCSHUB v1.9.4</b><br/>Developed by <b>Otim Noah</b><br/>
+    <b>BOTIM DOCSHUB v2.0.0</b><br/>Developed by <b>Otim Noah</b><br/>
     Direct PDF editing &mdash; text, images, annotations, signatures, forms, pages, cover merge &mdash; saved as PDF without Word conversion.<br/>
     Rendering: pdf.js &bull; Writing: pdf-lib &bull; OCR: Tesseract.js (online) &bull; Runs 100% locally otherwise.</div>`)
 }

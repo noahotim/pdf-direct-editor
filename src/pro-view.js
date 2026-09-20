@@ -3,11 +3,45 @@ import { E, status, reg, openDialog } from './pro-core.js'
 
 function needDoc() { if (!E().pdfLibDoc) { status('Open a PDF first'); return false } return true }
 
-// ---- zoom ----
-async function setZoom(z) {
+// ---- 60fps zoom — transform preview + debounced crisp render, virtualized ----
+let zoomRaf = null, zoomDebounce = null
+async function setZoom(z, opts = {}) {
   const e = E()
-  e.currentZoom = Math.max(0.3, Math.min(3, z))
-  await e.renderAll()
+  const target = Math.max(0.3, Math.min(3, z))
+  const instant = opts.instant
+  // 60fps transform preview: scale container without re-rendering every page
+  const container = document.getElementById('pdfContainer')
+  if (container && !instant) {
+    const from = e.currentZoom || 1
+    const scale = target / from
+    container.style.willChange = 'transform'
+    container.style.transformOrigin = 'top center'
+    container.style.transform = `scale(${scale})`
+    container.style.transition = 'transform 0.12s ease'
+    if (zoomRaf) cancelAnimationFrame(zoomRaf)
+    zoomRaf = requestAnimationFrame(() => {
+      // let transition run, then clear
+      setTimeout(() => {
+        container.style.transform = ''
+        container.style.transition = ''
+        container.style.willChange = ''
+      }, 140)
+    })
+  }
+  e.currentZoom = target
+  // Debounce full crisp re-render (virtualized) — 60fps feel, no jank on large docs
+  if (zoomDebounce) clearTimeout(zoomDebounce)
+  zoomDebounce = setTimeout(async () => {
+    await e.renderAll()
+    // virtualized: only render visible + buffer (handled in main.js via IntersectionObserver)
+    if (e.renderVisible) await e.renderVisible()
+  }, instant ? 0 : 120)
+  // Update UI immediately
+  const totalPages = e.totalPages || 0
+  const pageInfo = document.getElementById('pageInfo')
+  const zoomLabel = document.getElementById('zoomLabel')
+  if (pageInfo) pageInfo.textContent = `${totalPages} pages • ${Math.round(target*100)}%`
+  if (zoomLabel) zoomLabel.textContent = Math.round(target*100)+'%'
 }
 reg('zin', async () => { if (needDoc()) setZoom(E().currentZoom + 0.15) })
 reg('zout', async () => { if (needDoc()) setZoom(E().currentZoom - 0.15) })
